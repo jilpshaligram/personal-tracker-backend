@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export class DocumentExpiryJob {
   private readonly logger = new Logger(DocumentExpiryJob.name);
 
-  async execute() {
+  execute() {
     this.logger.log('Executing Document Expiry job...');
   }
 }

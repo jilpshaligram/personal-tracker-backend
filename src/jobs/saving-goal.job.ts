@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export class SavingGoalJob {
   private readonly logger = new Logger(SavingGoalJob.name);
 
-  async execute() {
+  execute() {
     this.logger.log('Executing Saving Goal job...');
   }
 }

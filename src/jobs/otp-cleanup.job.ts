@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export class OtpCleanupJob {
   private readonly logger = new Logger(OtpCleanupJob.name);
 
-  async execute() {
+  execute() {
     this.logger.log('Executing OTP cleanup job...');
   }
 }

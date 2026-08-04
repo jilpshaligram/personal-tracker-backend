@@ -13,8 +13,20 @@ import swaggerConfig from './config/swagger.config';
 import throttlerConfig from './config/throttler.config';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { AuthModule } from './modules/auth';
+import { AuditLogsModule } from './modules/audit-logs';
+import { BillHistoryModule } from './modules/bill-history';
+import { BillsModule } from './modules/bills';
+import { BudgetsModule } from './modules/budgets';
+import { DashboardModule } from './modules/dashboard';
+import { DocumentCategoryModule } from './modules/document-category';
 import { DocumentModule } from './modules/documents';
+import { ExpenseCategoryModule } from './modules/expense-category';
+import { IncomeCategoryModule } from './modules/income-category';
+import { NotificationsModule } from './modules/notifications';
 import { OtpModule } from './modules/otp';
+import { ReportsModule } from './modules/reports';
+import { SavingGoalsModule } from './modules/saving-goals';
+import { SavingTransactionsModule } from './modules/saving-transactions';
 import { TransactionModule } from './modules/transactions';
 import { UserSessionModule } from './modules/user-session';
 import { UsersModule } from './modules/users';
@@ -42,6 +54,18 @@ import { UsersModule } from './modules/users';
     OtpModule,
     DocumentModule,
     TransactionModule,
+    DocumentCategoryModule,
+    IncomeCategoryModule,
+    ExpenseCategoryModule,
+    BudgetsModule,
+    BillsModule,
+    BillHistoryModule,
+    SavingGoalsModule,
+    SavingTransactionsModule,
+    NotificationsModule,
+    AuditLogsModule,
+    DashboardModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
