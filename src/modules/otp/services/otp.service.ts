@@ -27,10 +27,8 @@ export class OtpService {
     email: string,
     purpose: OtpPurpose,
   ): Promise<string> {
-    await this.otpModel.update(
-      { isVerified: true, verifiedAt: new Date() },
-      { where: { userId, purpose, isVerified: false } },
-    );
+    // Delete all previous OTPs for this user+purpose (verified or expired)
+    await this.otpModel.destroy({ where: { userId, purpose } });
 
     const code = this.securityService.generateOtpCode();
     const hashedOtp = await this.securityService.hash(code);
@@ -63,6 +61,15 @@ export class OtpService {
     purpose: OtpPurpose,
     code: string,
   ): Promise<Otp> {
+    // Proactively delete any expired OTPs for this user+purpose
+    await this.otpModel.destroy({
+      where: {
+        userId,
+        purpose,
+        expiresAt: { [Op.lt]: new Date() },
+      },
+    });
+
     const otpRecord = await this.otpModel.findOne({
       where: {
         userId,
@@ -101,7 +108,8 @@ export class OtpService {
       });
     }
 
-    await otpRecord.update({ isVerified: true, verifiedAt: new Date() });
+    // Delete the OTP immediately — no need to keep it after successful verification
+    await otpRecord.destroy();
     return otpRecord;
   }
 
@@ -116,6 +124,12 @@ export class OtpService {
     });
 
     if (lastOtp) {
+      // If the last OTP is expired, delete it and issue a fresh one
+      if (lastOtp.expiresAt < new Date()) {
+        await lastOtp.destroy();
+        return this.createOtp(userId, email, purpose);
+      }
+
       if (lastOtp.resendCount >= MAX_RESEND) {
         throw new BadRequestException({
           success: false,

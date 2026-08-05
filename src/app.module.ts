@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/app.config';
@@ -48,6 +49,7 @@ import { UsersModule } from './modules/users';
       validate,
     }),
     DatabaseModule,
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     UserSessionModule,
