@@ -39,24 +39,144 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  async signup(dto: SignupDto): Promise<{ email: string; nextStep: string }> {
-    const existingEmail = await this.usersService.findByEmail(dto.email);
-    if (existingEmail) {
-      throw new ConflictException({
-        success: false,
-        message: 'Email already exists',
-        errors: [],
-      });
-    }
+  /**
+   * Validates that all signup fields match the existing user record.
+   * Password is excluded from validation as it can be updated.
+   * Performs all validations before returning to prevent timing attacks.
+   * @param dto - The signup DTO with submitted user data
+   * @param user - The existing user record from database
+   * @returns true if all fields match, false otherwise
+   */
+  private validateAllSignupFieldsExceptPassword(
+    dto: SignupDto,
+    user: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      dateOfBirth: string;
+      gender: string;
+    },
+  ): boolean {
+    // Validate all fields except password
+    const firstNameMatch = dto.firstName === user.firstName;
+    const lastNameMatch = dto.lastName === user.lastName;
+    const emailMatch = dto.email === user.email;
+    const phoneMatch = dto.phone === user.phone;
+    const dateOfBirthMatch = dto.dateOfBirth === user.dateOfBirth;
+    const genderMatch = dto.gender === user.gender;
 
-    const existingPhone = await this.usersService.findByPhone(dto.phone);
-    if (existingPhone) {
-      throw new ConflictException({
-        success: false,
-        message: 'Phone number already exists',
-        errors: [],
-      });
+    // Debug logging to identify field mismatches
+    if (!firstNameMatch)
+      console.log(
+        `[DEV] firstName mismatch: "${dto.firstName}" vs "${user.firstName}"`,
+      );
+    if (!lastNameMatch)
+      console.log(
+        `[DEV] lastName mismatch: "${dto.lastName}" vs "${user.lastName}"`,
+      );
+    if (!emailMatch)
+      console.log(`[DEV] email mismatch: "${dto.email}" vs "${user.email}"`);
+    if (!phoneMatch)
+      console.log(`[DEV] phone mismatch: "${dto.phone}" vs "${user.phone}"`);
+    if (!dateOfBirthMatch)
+      console.log(
+        `[DEV] dateOfBirth mismatch: "${dto.dateOfBirth}" vs "${user.dateOfBirth}"`,
+      );
+    if (!genderMatch)
+      console.log(`[DEV] gender mismatch: "${dto.gender}" vs "${user.gender}"`);
+
+    // Return true only if ALL fields (except password) match
+    return (
+      firstNameMatch &&
+      lastNameMatch &&
+      emailMatch &&
+      phoneMatch &&
+      dateOfBirthMatch &&
+      genderMatch
+    );
+  }
+
+  async signup(dto: SignupDto): Promise<{ email: string; nextStep: string }> {
+    const existingByEmail = await this.usersService.findByEmail(dto.email);
+    const existingByPhone = await this.usersService.findByPhone(dto.phone);
+
+    // ── Resumable signup ─────────────────────────────────────────────────────
+    // If the user already exists but never finished onboarding (PENDING status,
+    // not verified, no PIN), allow them to re-enter the flow by re-sending OTP.
+    // We verify all signup fields (except password) match. If password differs,
+    // we update it to the new value.
+    const existing = existingByEmail ?? existingByPhone;
+    if (existing) {
+      const isResumable =
+        existing.status === UserStatus.PENDING &&
+        !existing.isVerified &&
+        !existing.isPinCreated;
+
+      if (!isResumable) {
+        // Account is already active / verified — real conflict
+        throw new ConflictException({
+          success: false,
+          message: existingByEmail
+            ? 'Email already registered'
+            : 'Phone number already registered',
+          errors: [],
+        });
+      }
+
+      // Verify it's the same person (all fields except password must match)
+      const allFieldsMatch = this.validateAllSignupFieldsExceptPassword(
+        dto,
+        existing,
+      );
+      if (!allFieldsMatch) {
+        throw new ConflictException({
+          success: false,
+          message: existingByEmail
+            ? 'Email already registered'
+            : 'Phone number already registered',
+          errors: [],
+        });
+      }
+
+      // Check if password is different and update if needed
+      const passwordMatches = await this.securityService.compare(
+        dto.password,
+        existing.password,
+      );
+      if (!passwordMatches) {
+        console.log(
+          `[DEV] Updating password for resumable signup: ${existing.email}`,
+        );
+        const newHashedPassword = await this.securityService.hash(dto.password);
+        await this.usersService.updatePassword(existing.id, newHashedPassword);
+      }
+
+      // Same person, not yet verified → re-send OTP and resume
+      const otp = await this.otpService.createOtp(
+        existing.id,
+        existing.email,
+        OtpPurpose.EMAIL_VERIFICATION,
+      );
+
+      console.log(`[DEV] Resumable signup OTP for ${existing.email}: ${otp}`);
+
+      try {
+        await this.mailService.sendOtpEmail(
+          existing.email,
+          otp,
+          OtpPurpose.EMAIL_VERIFICATION,
+        );
+      } catch (mailErr) {
+        console.error(
+          '[MailService] Failed to send resumable signup OTP:',
+          (mailErr as Error).message,
+        );
+      }
+
+      return { email: existing.email, nextStep: 'VERIFY_EMAIL_OTP' };
     }
+    // ── New user ──────────────────────────────────────────────────────────────
 
     const hashedPassword = await this.securityService.hash(dto.password);
 
