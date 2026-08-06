@@ -14,6 +14,7 @@ import { AuthService } from '../services/auth.service';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 import { AuthGuard } from '../../../common/guards/auth.guard';
+import { Public } from '../../../common/decorators/public.decorator';
 import type { IJwtPayload } from '../interfaces/jwt-payload.interface';
 
 import { signupSchema } from '../dto/signup.dto';
@@ -53,6 +54,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
+  @Public()
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ZodValidationPipe(signupSchema))
   async signup(@Body() dto: SignupDto) {
@@ -61,6 +63,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(verifyEmailOtpSchema))
   async verifyEmail(@Body() dto: VerifyEmailOtpDto) {
@@ -69,6 +72,7 @@ export class AuthController {
   }
 
   @Post('resend-email-otp')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(resendEmailOtpSchema))
   async resendEmailOtp(@Body() dto: ResendEmailOtpDto) {
@@ -77,6 +81,7 @@ export class AuthController {
   }
 
   @Post('create-pin')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(createPinSchema))
   async createPin(@Body() dto: CreatePinDto) {
@@ -85,6 +90,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(loginSchema))
   async login(@Body() dto: LoginDto) {
@@ -93,6 +99,7 @@ export class AuthController {
   }
 
   @Post('verify-pin')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(verifyPinSchema))
   async verifyPin(
@@ -118,6 +125,7 @@ export class AuthController {
   }
 
   @Post('refresh-token')
+  @Public()
   @HttpCode(HttpStatus.OK)
   async refreshToken(
     @Req() req: Request,
@@ -170,6 +178,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(forgotPasswordSchema))
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -178,6 +187,7 @@ export class AuthController {
   }
 
   @Post('verify-password-otp')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(verifyPasswordOtpSchema))
   async verifyPasswordOtp(@Body() dto: VerifyPasswordOtpDto) {
@@ -186,6 +196,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(resetPasswordSchema))
   async resetPassword(@Body() dto: ResetPasswordDto) {
@@ -194,6 +205,7 @@ export class AuthController {
   }
 
   @Post('forgot-pin')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(forgotPinSchema))
   async forgotPin(@Body() dto: ForgotPinDto) {
@@ -202,6 +214,7 @@ export class AuthController {
   }
 
   @Post('verify-pin-otp')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(verifyPinOtpSchema))
   async verifyPinOtp(@Body() dto: VerifyPinOtpDto) {
@@ -210,6 +223,7 @@ export class AuthController {
   }
 
   @Post('reset-pin')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(resetPinSchema))
   async resetPin(@Body() dto: ResetPinDto) {
