@@ -19,6 +19,6 @@ import { OnboardingGuard } from '../../common/guards/onboarding.guard';
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard, OnboardingGuard],
-  exports: [AuthService, AuthGuard, OnboardingGuard],
+  exports: [AuthService, AuthGuard, OnboardingGuard, SecurityModule],
 })
 export class AuthModule {}

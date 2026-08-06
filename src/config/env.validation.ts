@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsString,
   IsOptional,
+  type ValidationError,
 } from 'class-validator';
 
 enum Environment {
@@ -51,16 +52,27 @@ class EnvironmentVariables {
   REFRESH_TOKEN_EXPIRY: string;
 }
 
-export function validate(config: Record<string, any>) {
+export function validate(config: Record<string, unknown>) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
-  });
-  const errors = validateSync(validatedConfig, {
+  }) as EnvironmentVariables;
+
+  const errors: ValidationError[] = validateSync(validatedConfig, {
     skipMissingProperties: false,
   });
 
   if (errors.length > 0) {
-    throw new Error(errors.toString());
+    const message = errors
+      .map((error) => {
+        const constraints = error.constraints ?? {};
+        return Object.values(constraints).join(', ');
+      })
+      .filter(Boolean)
+      .join('; ');
+
+    throw new Error(message);
   }
+
   return validatedConfig;
 }
