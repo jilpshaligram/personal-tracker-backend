@@ -15,9 +15,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
         autoLoadModels: true,
-        sync: {
-          alter: configService.get<string>('NODE_ENV') !== 'production',
-        },
+        synchronize: false,
+        logging: false,
       }),
     }),
   ],

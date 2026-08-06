@@ -34,6 +34,7 @@ import { SavingTransactionsModule } from './modules/saving-transactions';
 import { TransactionModule } from './modules/transactions';
 import { UserSessionModule } from './modules/user-session';
 import { UsersModule } from './modules/users';
+import { CategoriesModule } from './modules/categories';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { UsersModule } from './modules/users';
     UserSessionModule,
     OtpModule,
     TransactionModule,
+    CategoriesModule,
     DocumentCategoryModule,
     DocumentModule,
     IncomeCategoryModule,
