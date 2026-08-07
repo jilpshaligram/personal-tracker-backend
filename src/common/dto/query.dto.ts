@@ -3,14 +3,12 @@ import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class QueryDto {
   @IsOptional()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @Transform(({ value }: TransformFnParams) => Number(value))
   @IsInt()
   @Min(1)
   page: number = 1;
 
   @IsOptional()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   @Transform(({ value }: TransformFnParams) => Number(value))
   @IsInt()
   @Min(1)

@@ -6,7 +6,6 @@ import {
   Delete,
   Param,
   Body,
-  ParseIntPipe,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -17,7 +16,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
+import { Query } from '@nestjs/common';
+import { QueryDocumentDto } from '../dto/query-document.dto';
 import { DocumentService } from '../services/document.service';
 import {
   CreateDocumentDto,
@@ -31,6 +31,7 @@ import { multerDocumentOptions } from '../multer.config';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
+import { successResponse } from 'src/common/responses/api-response.helper';
 
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;
@@ -44,7 +45,7 @@ export class DocumentController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file', multerDocumentOptions))
-  create(
+  async create(
     @UploadedFile() file: Express.Multer.File,
     @Body(new ZodValidationPipe(createDocumentSchema)) dto: CreateDocumentDto,
     @Req() req: AuthenticatedRequest,
@@ -52,39 +53,46 @@ export class DocumentController {
     if (!file) {
       throw new BadRequestException('PDF file is required');
     }
-    return this.documentService.create(dto, file, req.user.sub);
+    const data = await this.documentService.create(dto, file, req.user.sub);
+
+    return successResponse('Document created successfully.', data);
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.documentService.findAll(req.user.sub);
+  async findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: QueryDocumentDto,
+  ) {
+    const data = await this.documentService.findAll(req.user.sub, query);
+
+    return successResponse('Documents fetched successfully.', data);
   }
 
   @Get(':id')
-  findOne(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.documentService.findOne(id, req.user.sub);
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const data = await this.documentService.findOne(id, req.user.sub);
+
+    return successResponse('Document fetched successfully.', data);
   }
 
   @Patch(':id')
   @UseInterceptors(FileInterceptor('file', multerDocumentOptions))
-  update(
-    @Param('id', ParseIntPipe) id: number,
+  async update(
+    @Param('id') id: string,
     @Body(new ZodValidationPipe(updateDocumentSchema)) dto: UpdateDocumentDto,
     @Req() req: AuthenticatedRequest,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.documentService.update(id, dto, file, req.user.sub);
+    const data = await this.documentService.update(id, dto, file, req.user.sub);
+
+    return successResponse('Document updated successfully.', data);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  remove(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.documentService.remove(id, req.user.sub);
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    await this.documentService.remove(id, req.user.sub);
+
+    return successResponse('Document deleted successfully.', null);
   }
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   IsInt,
   IsNotEmpty,
@@ -10,10 +9,7 @@ import { Type } from 'class-transformer';
 import { z } from 'zod';
 
 export const createDocumentSchema = z.object({
-  categoryId: z.coerce
-    .number()
-    .int()
-    .positive('Category ID must be a positive number'),
+  categoryId: z.string().uuid('Invalid category ID '),
   title: z.string().trim().min(1, 'Title is required'),
   expiryDate: z
     .string()
@@ -27,10 +23,9 @@ export const createDocumentSchema = z.object({
 export type CreateDocumentDtoInput = z.infer<typeof createDocumentSchema>;
 
 export class CreateDocumentDto {
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  categoryId: number;
+  @IsString()
+  @IsNotEmpty()
+  categoryId: string;
 
   @IsString()
   @IsNotEmpty()

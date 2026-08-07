@@ -4,37 +4,53 @@ import {
   Model,
   DataType,
   PrimaryKey,
-  AutoIncrement,
 } from 'sequelize-typescript';
 import { Optional } from 'sequelize';
 
 export interface DocumentCategoryAttributes {
-  id: number;
+  id: string;
   name: string;
+  status: 'active' | 'inactive';
+  deletedAt?: Date;
 }
 
 export type DocumentCategoryCreationAttributes = Optional<
   DocumentCategoryAttributes,
-  'id'
+  'id' | 'deletedAt'
 >;
 
 @Table({
   tableName: 'document_categories',
   timestamps: true,
+  paranoid: true,
 })
 export class DocumentCategory extends Model<
   DocumentCategoryAttributes,
   DocumentCategoryCreationAttributes
 > {
   @PrimaryKey
-  @AutoIncrement
-  @Column(DataType.INTEGER)
-  declare id: number;
+  @Column({
+    type: DataType.UUID,
+    defaultValue: DataType.UUIDV4,
+  })
+  declare id: string;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    unique: true,
   })
   declare name: string;
+
+  @Column({
+    type: DataType.ENUM('active', 'inactive'),
+    allowNull: false,
+    defaultValue: 'active',
+  })
+  declare status: 'active' | 'inactive';
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  declare deletedAt: Date;
 }

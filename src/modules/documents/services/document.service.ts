@@ -10,6 +10,9 @@ import { DocumentCategory } from '../../document-category/models/document-catego
 import { CreateDocumentDto } from '../dto/create-document.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
 import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
+import { QueryDocumentDto } from '../dto/query-document.dto';
+import { DOCUMENT_QUERY_FIELDS } from '../constants/document-query-fields';
+import { QueryHelper } from 'src/common/helpers/query.helper';
 
 @Injectable()
 export class DocumentService {
@@ -54,22 +57,56 @@ export class DocumentService {
     });
   }
 
-  async findAll(userId: string | number): Promise<Document[]> {
+  async findAll(
+    userId: string | number,
+    query: QueryDocumentDto,
+  ): Promise<{
+    documents: Document[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
+    };
+  }> {
     const currentUserId = this.getUserId(userId);
 
-    return this.documentModel.findAll({
-      where: { userId: currentUserId },
+    const queryResult = QueryHelper.build(query, DOCUMENT_QUERY_FIELDS);
+
+    queryResult.where = {
+      ...queryResult.where,
+      userId: currentUserId,
+    };
+
+    const { count, rows } = await this.documentModel.findAndCountAll({
+      where: queryResult.where,
       include: [
         {
           model: DocumentCategory,
           attributes: ['id', 'name'],
         },
       ],
-      order: [['id', 'ASC']],
+      order: queryResult.order,
+      offset: queryResult.offset,
+      limit: queryResult.limit,
     });
+
+    return {
+      documents: rows,
+      pagination: {
+        total: count,
+        page: queryResult.page,
+        limit: queryResult.limit,
+        totalPages: Math.ceil(count / queryResult.limit),
+        hasNext: queryResult.page < Math.ceil(count / queryResult.limit),
+        hasPrevious: queryResult.page > 1,
+      },
+    };
   }
 
-  async findOne(id: number, userId: string | number): Promise<Document> {
+  async findOne(id: string, userId: string | number): Promise<Document> {
     const currentUserId = this.getUserId(userId);
     const document = await this.documentModel.findOne({
       where: { id, userId: currentUserId },
@@ -82,14 +119,14 @@ export class DocumentService {
     });
 
     if (!document) {
-      throw new NotFoundException(`Document with id ${id} not found`);
+      throw new NotFoundException(`Document  not found`);
     }
 
     return document;
   }
 
   async update(
-    id: number,
+    id: string,
     dto: UpdateDocumentDto,
     file: Express.Multer.File | undefined,
     userId: string | number,
@@ -102,14 +139,12 @@ export class DocumentService {
         dto.categoryId,
       );
       if (!category) {
-        throw new BadRequestException(
-          `Document category with id ${dto.categoryId} does not exist`,
-        );
+        throw new BadRequestException(`Document category  does not exist`);
       }
     }
 
     const updateData: Partial<{
-      categoryId: number;
+      categoryId: string;
       title: string;
       expiryDate: Date;
       reminderDaysBefore: number;
@@ -142,7 +177,7 @@ export class DocumentService {
   }
 
   async remove(
-    id: number,
+    id: string,
     userId: string | number,
   ): Promise<{ message: string }> {
     const currentUserId = this.getUserId(userId);

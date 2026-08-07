@@ -4,7 +4,6 @@ import {
   Model,
   DataType,
   PrimaryKey,
-  AutoIncrement,
   ForeignKey,
   BelongsTo,
   Default,
@@ -14,9 +13,9 @@ import { Optional } from 'sequelize';
 import { DocumentCategory } from '../../document-category/models/document-category.model';
 
 export interface DocumentAttributes {
-  id: number;
+  id: string;
   userId: string;
-  categoryId: number;
+  categoryId: string;
   title: string;
   expiryDate: Date;
   reminderDaysBefore: number;
@@ -29,15 +28,18 @@ export type DocumentCreationAttributes = Optional<DocumentAttributes, 'id'>;
 @Table({
   tableName: 'documents',
   timestamps: true,
+  paranoid: true,
 })
 export class Document extends Model<
   DocumentAttributes,
   DocumentCreationAttributes
 > {
   @PrimaryKey
-  @AutoIncrement
-  @Column(DataType.INTEGER)
-  declare id: number;
+  @Column({
+    type: DataType.UUID,
+    defaultValue: DataType.UUIDV4,
+  })
+  declare id: string;
 
   @Column({
     type: DataType.STRING,
@@ -47,10 +49,10 @@ export class Document extends Model<
 
   @ForeignKey(() => DocumentCategory)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
   })
-  declare categoryId: number;
+  declare categoryId: string;
 
   @BelongsTo(() => DocumentCategory)
   declare category: DocumentCategory;
@@ -85,4 +87,10 @@ export class Document extends Model<
     allowNull: false,
   })
   declare filePublicId: string;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  declare deletedAt: Date | null;
 }

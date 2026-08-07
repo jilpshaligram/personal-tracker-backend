@@ -10,7 +10,6 @@ import {
   Patch,
   Query,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
 import type { FindAllOptions } from '../services/users.service';
@@ -131,8 +130,10 @@ export class UsersController {
   // PATCH /users/:id
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @UsePipes(new ZodValidationPipe(updateUserSchema))
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  async update(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
+  ) {
     const updated = await this.usersService.updateUser(id, dto);
     return successResponse('User updated successfully.', {
       user: this.usersService.toSafeUser(updated),
