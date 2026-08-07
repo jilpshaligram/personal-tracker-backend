@@ -38,15 +38,8 @@ export class DocumentCategoryController {
 
   @Get()
   findAll() {
-    console.log('✅ DocumentCategoryController called');
-
     return this.documentCategoryService.findAll();
   }
-
-  // @Get(':id')
-  // findOne(@Param('id') id: number) {
-  //   return this.documentCategoryService.findOne(+id);
-  // }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
