@@ -7,9 +7,11 @@ import {
   Body,
   Patch,
   UseGuards,
-  UsePipes,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-
+import { Query } from '@nestjs/common';
+import { QueryDocumentCategoryDto } from '../dto/query-document-category.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { DocumentCategoryService } from '../services/document-category.service';
 import {
@@ -20,8 +22,8 @@ import {
   UpdateDocumentCategoryDto,
   updateDocumentCategorySchema,
 } from '../dto/update-document-category.dto';
-import { ParseIntPipe } from '@nestjs/common';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
+import { successResponse } from '../../../common/responses/api-response.helper';
 
 @UseGuards(AuthGuard)
 @Controller('document-category')
@@ -31,29 +33,45 @@ export class DocumentCategoryController {
   ) {}
 
   @Post()
-  @UsePipes(new ZodValidationPipe(createDocumentCategorySchema))
-  create(@Body() dto: CreateDocumentCategoryDto) {
-    return this.documentCategoryService.create(dto);
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body(new ZodValidationPipe(createDocumentCategorySchema))
+    dto: CreateDocumentCategoryDto,
+  ) {
+    const data = await this.documentCategoryService.create(dto);
+
+    return successResponse('Document category created successfully.', data);
   }
 
   @Get()
-  findAll() {
-    return this.documentCategoryService.findAll();
+  async findAll(@Query() query: QueryDocumentCategoryDto) {
+    const data = await this.documentCategoryService.findAll(query);
+
+    return successResponse('Document categories fetched successfully.', data);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.documentCategoryService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const data = await this.documentCategoryService.findOne(id);
+
+    return successResponse('Document category fetched successfully.', data);
   }
 
   @Patch(':id')
-  @UsePipes(new ZodValidationPipe(updateDocumentCategorySchema))
-  update(@Param('id') id: number, @Body() dto: UpdateDocumentCategoryDto) {
-    return this.documentCategoryService.update(+id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateDocumentCategorySchema))
+    dto: UpdateDocumentCategoryDto,
+  ) {
+    const data = await this.documentCategoryService.update(id, dto);
+
+    return successResponse('Document category updated successfully.', data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: number) {
-    return this.documentCategoryService.remove(+id);
+  async remove(@Param('id') id: string) {
+    await this.documentCategoryService.remove(id);
+
+    return successResponse('Document category deleted successfully.', null);
   }
 }

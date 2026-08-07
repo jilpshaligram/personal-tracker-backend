@@ -7,6 +7,9 @@ import { InjectModel } from '@nestjs/sequelize';
 import { DocumentCategory } from '../models/document-category.model';
 import { CreateDocumentCategoryDto } from '../dto/create-document-category.dto';
 import { UpdateDocumentCategoryDto } from '../dto/update-document-category.dto';
+import { QueryHelper } from '../../../common/helpers/query.helper';
+import { QueryDocumentCategoryDto } from '../dto/query-document-category.dto';
+import { DOCUMENT_CATEGORY_QUERY_FIELDS } from '../constants/document-category-query-fields';
 
 @Injectable()
 export class DocumentCategoryService {
@@ -26,16 +29,38 @@ export class DocumentCategoryService {
 
     return this.documentCategoryModel.create({
       name: dto.name,
+      status: dto.status ?? 'active',
     });
   }
 
-  async findAll() {
-    return this.documentCategoryModel.findAll({
-      order: [['id', 'ASC']],
+  async findAll(query: QueryDocumentCategoryDto) {
+    const queryResult = QueryHelper.build(
+      query,
+      DOCUMENT_CATEGORY_QUERY_FIELDS,
+    );
+
+    const { count, rows } = await this.documentCategoryModel.findAndCountAll({
+      where: queryResult.where,
+      order: queryResult.order,
+      offset: queryResult.offset,
+      limit: queryResult.limit,
     });
+
+    return {
+      categories: rows,
+
+      pagination: {
+        total: count,
+        page: queryResult.page,
+        limit: queryResult.limit,
+        totalPages: Math.ceil(count / queryResult.limit),
+        hasNext: queryResult.page < Math.ceil(count / queryResult.limit),
+        hasPrevious: queryResult.page > 1,
+      },
+    };
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const category = await this.documentCategoryModel.findByPk(id);
 
     if (!category) {
@@ -45,7 +70,7 @@ export class DocumentCategoryService {
     return category;
   }
 
-  async update(id: number, dto: UpdateDocumentCategoryDto) {
+  async update(id: string, dto: UpdateDocumentCategoryDto) {
     const category = await this.findOne(id);
 
     await category.update(dto);
@@ -53,7 +78,7 @@ export class DocumentCategoryService {
     return category;
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     const category = await this.findOne(id);
 
     await category.destroy();
