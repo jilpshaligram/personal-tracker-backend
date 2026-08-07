@@ -14,3 +14,16 @@ export function errorResponse(message: string, errors: unknown[] = []) {
     errors,
   };
 }
+
+export const apiResponse = {
+  success: (message: string, data?: any) => ({
+    success: true,
+    message,
+    ...(data !== undefined && { data }),
+  }),
+  error: (message: string, errors: unknown[] = []) => ({
+    success: false,
+    message,
+    errors,
+  }),
+};
