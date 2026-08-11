@@ -10,7 +10,9 @@ export const billFilterSchema = z.object({
   isRecurring: z.coerce.boolean().optional(),
   dueFrom: z.string().optional(),
   dueTo: z.string().optional(),
-  sortBy: z.enum(['dueDate', 'amount', 'title', 'status', 'createdAt']).default('dueDate'),
+  sortBy: z
+    .enum(['dueDate', 'amount', 'title', 'status', 'createdAt'])
+    .default('dueDate'),
   sortOrder: z.enum(['ASC', 'DESC']).default('ASC'),
 });
 

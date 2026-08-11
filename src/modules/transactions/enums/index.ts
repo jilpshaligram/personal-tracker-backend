@@ -9,10 +9,10 @@
  * from a single path instead of multiple import statements.
  *
  * USAGE:
- * import { PaymentMethod, CategoryType } from '../enums';
+ * import { PaymentMethod, TransactionType } from '../enums';
  * instead of:
  * import { PaymentMethod } from '../enums/payment-method.enum';
- * import { CategoryType } from '../enums/category-type.enum';
+ * import { TransactionType } from '../enums/transaction-type.enum';
  */
-export { CategoryType } from './category-type.enum';
+export { TransactionType } from './transaction-type.enum';
 export { PaymentMethod } from './payment-method.enum';

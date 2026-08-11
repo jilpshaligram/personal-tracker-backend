@@ -1,4 +1,4 @@
-import { CategoryType } from '../enums/category-type.enum';
+import { TransactionType } from '../enums/transaction-type.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
 
 /**
@@ -27,7 +27,7 @@ export interface ICategoryMeta {
    * This is the key field — it tells the client whether this transaction
    * represents money coming in or going out.
    */
-  readonly type: CategoryType;
+  readonly type: TransactionType;
 
   /** Optional icon identifier for UI rendering */
   readonly icon: string | null;
@@ -100,7 +100,7 @@ export interface ITransactionResponse {
    * It is computed by the Service layer via category JOIN.
    * Clients use this to render +/- signs, colors, and filter views.
    */
-  readonly type: CategoryType;
+  readonly type: TransactionType;
 
   /** Optional user note */
   readonly note: string | null;

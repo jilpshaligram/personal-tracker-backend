@@ -16,7 +16,7 @@ export function errorResponse(message: string, errors: unknown[] = []) {
 }
 
 export const apiResponse = {
-  success: (message: string, data?: any) => ({
+  success: <T = unknown>(message: string, data?: T) => ({
     success: true,
     message,
     ...(data !== undefined && { data }),

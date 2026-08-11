@@ -1,4 +1,5 @@
 import { PaymentMethod } from '../enums/payment-method.enum';
+import { TransactionType } from '../enums/transaction-type.enum';
 import { ICategory } from './category.interface';
 
 /**
@@ -52,12 +53,29 @@ export interface ITransaction {
   readonly userId: string;
 
   /**
+   * FK → wallets.id
+   * The wallet affected by this transaction.
+   */
+  readonly walletId: string;
+
+  /**
    * FK → categories.id
    * The category this transaction belongs to.
-   * Only the foreign key is stored in the transactions table.
-   * The full category object is available via the `category` nested field (JOIN).
+   * Nullable because some types (e.g. OPENING_BALANCE, TRANSFER) do not use categories.
    */
-  readonly categoryId: string;
+  readonly categoryId: string | null;
+
+  /**
+   * FK → saving_goals.id
+   * The saving goal affected by this transaction.
+   * Nullable because most transactions do not involve saving goals.
+   */
+  readonly savingGoalId: string | null;
+
+  /**
+   * The type of transaction (INCOME, EXPENSE, etc.)
+   */
+  readonly type: TransactionType;
 
   /**
    * The full amount of this transaction.
@@ -93,15 +111,8 @@ export interface ITransaction {
   /**
    * The joined category record.
    * Available when the Repository query includes the category association.
-   *
-   * This is where the transaction TYPE comes from:
-   *   transaction.category.type === CategoryType.INCOME → income transaction
-   *   transaction.category.type === CategoryType.EXPENSE → expense transaction
-   *
-   * The Repository layer is responsible for always including this JOIN
-   * so the Service layer never receives a transaction without its category.
    */
-  readonly category: ICategory;
+  readonly category?: ICategory;
 
   /** Audit: when this record was created (server-side, auto-set by DB) */
   readonly createdAt: Date;

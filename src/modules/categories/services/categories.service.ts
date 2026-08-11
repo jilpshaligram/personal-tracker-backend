@@ -3,10 +3,10 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { CategoriesRepository } from './categories.repository';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { Category } from './schemas/category.schema';
+import { CategoriesRepository } from '../repositories/categories.repository';
+import type { CreateCategoryDto } from '../dto/create-category.dto';
+import type { UpdateCategoryDto } from '../dto/update-category.dto';
+import { Category } from '../schemas/category.schema';
 
 @Injectable()
 export class CategoriesService {

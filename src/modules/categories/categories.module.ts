@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { CategoriesService } from './categories.service';
-import { CategoriesController } from './categories.controller';
-import { CategoriesRepository } from './categories.repository';
+import { CategoriesService } from './services/categories.service';
+import { CategoriesController } from './controllers/categories.controller';
+import { CategoriesRepository } from './repositories/categories.repository';
 import { Category } from './schemas/category.schema';
 import { SecurityModule } from '../../infrastructure/security/security.module';
 

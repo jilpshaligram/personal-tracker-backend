@@ -53,10 +53,9 @@ class EnvironmentVariables {
 }
 
 export function validate(config: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
-  }) as EnvironmentVariables;
+  });
 
   const errors: ValidationError[] = validateSync(validatedConfig, {
     skipMissingProperties: false,

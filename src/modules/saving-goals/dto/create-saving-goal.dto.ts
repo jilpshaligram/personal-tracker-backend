@@ -4,12 +4,6 @@ export const createSavingGoalSchema = z
   .object({
     title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
 
-    description: z.string().max(1000, 'Description too long').optional(),
-
-    icon: z.string().max(100, 'Icon identifier too long').optional(),
-
-    color: z.string().max(50, 'Color value too long').optional(),
-
     targetAmount: z
       .number({ error: 'Target amount is required' })
       .positive('Target amount must be greater than 0'),
@@ -22,15 +16,6 @@ export const createSavingGoalSchema = z
         'Target date must be in the future',
       ),
 
-    priority: z
-      .preprocess(
-        (val) => (typeof val === 'string' ? val.toUpperCase() : val),
-        z.enum(['LOW', 'MEDIUM', 'HIGH'], {
-          message: 'Priority must be LOW, MEDIUM, or HIGH',
-        }),
-      )
-      .optional(),
-
     autoReminder: z.boolean().optional(),
 
     reminderFrequency: z
@@ -41,8 +26,6 @@ export const createSavingGoalSchema = z
         }),
       )
       .optional(),
-
-    notes: z.string().max(2000, 'Notes too long').optional(),
   })
   .refine(
     (data) => {

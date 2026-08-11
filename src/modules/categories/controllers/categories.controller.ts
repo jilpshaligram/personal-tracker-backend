@@ -9,19 +9,15 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { CategoriesService } from './categories.service';
-import {
-  CreateCategoryDto,
-  createCategorySchema,
-} from './dto/create-category.dto';
-import {
-  UpdateCategoryDto,
-  updateCategorySchema,
-} from './dto/update-category.dto';
-import { AuthGuard } from '../../common/guards/auth.guard';
-import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { CategoriesService } from '../services/categories.service';
+import { createCategorySchema } from '../dto/create-category.dto';
+import type { CreateCategoryDto } from '../dto/create-category.dto';
+import { updateCategorySchema } from '../dto/update-category.dto';
+import type { UpdateCategoryDto } from '../dto/update-category.dto';
+import { AuthGuard } from '../../../common/guards/auth.guard';
+import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { Request } from 'express';
-import { IJwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 
 @Controller('categories')
 @UseGuards(AuthGuard)

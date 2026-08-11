@@ -11,6 +11,7 @@ import {
   UsePipes,
   Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillService } from '../services/bill.service';
 import { CreateBillDto, createBillSchema } from '../dto/create-bill.dto';
@@ -20,6 +21,11 @@ import { BillFilterDto, billFilterSchema } from '../dto/bill-filter.dto';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
+import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+
+interface AuthenticatedRequest extends Request {
+  user: IJwtPayload;
+}
 
 @Controller('bills')
 @UseGuards(AuthGuard)
@@ -31,7 +37,7 @@ export class BillController {
 
   @Get()
   async findAll(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query(new ZodValidationPipe(billFilterSchema)) filter: BillFilterDto,
   ) {
     const result = await this.billService.findAll(req.user.sub, filter);
@@ -39,7 +45,10 @@ export class BillController {
   }
 
   @Get('upcoming')
-  async findUpcoming(@Req() req: any, @Query('days') days?: string) {
+  async findUpcoming(
+    @Req() req: AuthenticatedRequest,
+    @Query('days') days?: string,
+  ) {
     const data = await this.billService.findUpcoming(
       req.user.sub,
       days ? parseInt(days) : 7,
@@ -48,14 +57,14 @@ export class BillController {
   }
 
   @Get(':id')
-  async findOne(@Req() req: any, @Param('id') id: string) {
+  async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const data = await this.billService.findOne(req.user.sub, id);
     return apiResponse.success('Bill fetched successfully', data);
   }
 
   @Post()
   @UsePipes(new ZodValidationPipe(createBillSchema))
-  async create(@Req() req: any, @Body() dto: CreateBillDto) {
+  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateBillDto) {
     const data = await this.billService.create(req.user.sub, dto);
     return apiResponse.success('Bill created successfully', data);
   }
@@ -63,7 +72,7 @@ export class BillController {
   @Patch(':id')
   @UsePipes(new ZodValidationPipe(updateBillSchema))
   async update(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateBillDto,
   ) {
@@ -72,7 +81,7 @@ export class BillController {
   }
 
   @Delete(':id')
-  async delete(@Req() req: any, @Param('id') id: string) {
+  async delete(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     await this.billService.delete(req.user.sub, id);
     return apiResponse.success('Bill deleted successfully');
   }
@@ -80,7 +89,7 @@ export class BillController {
   @Post(':id/pay')
   @UsePipes(new ZodValidationPipe(payBillSchema))
   async pay(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: PayBillDto,
   ) {
@@ -89,7 +98,7 @@ export class BillController {
   }
 
   @Get(':id/history')
-  async getHistory(@Req() req: any, @Param('id') id: string) {
+  async getHistory(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     // Validate bill exists and belongs to current user
     await this.billService.findOne(req.user.sub, id);
     const data = await this.billHistoryService.findByBill(id);

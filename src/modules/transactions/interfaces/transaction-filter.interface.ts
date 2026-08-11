@@ -1,4 +1,4 @@
-import { CategoryType } from '../enums/category-type.enum';
+import { TransactionType } from '../enums/transaction-type.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
 
 /**
@@ -75,7 +75,7 @@ export interface ITransactionFilter {
    * This filters via the JOIN on categories: WHERE categories.type = :type
    * The Repository must handle this as a condition on the association.
    */
-  readonly type?: CategoryType;
+  readonly type?: TransactionType;
 
   /**
    * Filter by payment method.

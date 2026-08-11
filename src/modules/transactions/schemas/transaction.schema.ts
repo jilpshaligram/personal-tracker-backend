@@ -12,6 +12,8 @@ import {
 import { PaymentMethod } from '../enums/payment-method.enum';
 import { Category } from '../../categories/schemas/category.schema';
 import { User } from '../../users/schemas/user.schema';
+import { SavingGoal } from '../../saving-goals/schemas/saving-goal.schema';
+import { TransactionType } from '../enums/transaction-type.enum';
 import { ITransaction } from '../interfaces/transaction.interface';
 
 /**
@@ -39,6 +41,21 @@ import { ITransaction } from '../interfaces/transaction.interface';
       where: { deleted_at: null },
     },
     {
+      name: 'idx_transactions_wallet_date',
+      fields: ['wallet_id', 'transaction_date'],
+      where: { deleted_at: null },
+    },
+    {
+      name: 'idx_transactions_saving_goal',
+      fields: ['saving_goal_id'],
+      where: { deleted_at: null },
+    },
+    {
+      name: 'idx_transactions_user_type_date',
+      fields: ['user_id', 'type', 'transaction_date'],
+      where: { deleted_at: null },
+    },
+    {
       name: 'idx_transactions_user_created',
       fields: ['user_id', 'created_at'],
       where: { deleted_at: null },
@@ -60,9 +77,24 @@ export class Transaction
   declare userId: string;
 
   @AllowNull(false)
+  @Column({
+    type: DataType.ENUM(...Object.values(TransactionType)),
+  })
+  declare type: TransactionType;
+
+  @AllowNull(false)
+  @Column({ type: DataType.UUID, field: 'wallet_id' })
+  declare walletId: string;
+
+  @AllowNull(true)
   @ForeignKey(() => Category)
   @Column({ type: DataType.UUID, field: 'category_id' })
-  declare categoryId: string;
+  declare categoryId: string | null;
+
+  @AllowNull(true)
+  @ForeignKey(() => SavingGoal)
+  @Column({ type: DataType.UUID, field: 'saving_goal_id' })
+  declare savingGoalId: string | null;
 
   @AllowNull(false)
   @Column({
@@ -100,7 +132,14 @@ export class Transaction
     foreignKey: 'categoryId',
     as: 'category',
   })
+  // @ts-expect-error - Category model uses CategoryTransactionType enum, while ITransaction expects TransactionType enum
   declare category: Category;
+
+  @BelongsTo(() => SavingGoal, {
+    foreignKey: 'savingGoalId',
+    as: 'savingGoal',
+  })
+  declare savingGoal: SavingGoal;
 
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
