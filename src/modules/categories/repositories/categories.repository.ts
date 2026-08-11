@@ -5,9 +5,9 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
-import { Category } from './schemas/category.schema';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
+import { Category } from '../schemas/category.schema';
+import type { CreateCategoryDto } from '../dto/create-category.dto';
+import type { UpdateCategoryDto } from '../dto/update-category.dto';
 
 @Injectable()
 export class CategoriesRepository {

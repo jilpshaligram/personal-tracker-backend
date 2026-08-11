@@ -35,6 +35,7 @@ import { TransactionModule } from './modules/transactions';
 import { UserSessionModule } from './modules/user-session';
 import { UsersModule } from './modules/users';
 import { CategoriesModule } from './modules/categories';
+import { WalletsModule } from './modules/wallets/wallets.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { CategoriesModule } from './modules/categories';
     UserSessionModule,
     OtpModule,
     TransactionModule,
+    WalletsModule,
     CategoriesModule,
     DocumentCategoryModule,
     DocumentModule,

@@ -7,7 +7,6 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { SavingGoal } from '../schemas/saving-goal.schema';
 import { SavingGoalStatus } from '../enums/saving-goal-status.enum';
-import { SavingGoalPriority } from '../enums/saving-goal-priority.enum';
 import { ISavingGoal } from '../interfaces/saving-goal.interface';
 import { CreateSavingGoalDto } from '../dto/create-saving-goal.dto';
 import { UpdateSavingGoalDto } from '../dto/update-saving-goal.dto';
@@ -38,21 +37,16 @@ export class SavingGoalService {
     const goal = await this.savingGoalModel.create({
       userId,
       title: dto.title,
-      description: dto.description ?? null,
-      icon: dto.icon ?? null,
-      color: dto.color ?? null,
       targetAmount: dto.targetAmount,
       savedAmount: 0,
       remainingAmount: dto.targetAmount, // remainingAmount = targetAmount - 0
       targetDate: dto.targetDate,
       startDate: new Date().toISOString().split('T')[0], // today
-      priority: dto.priority ?? SavingGoalPriority.MEDIUM,
       status: SavingGoalStatus.ACTIVE,
       isCompleted: false,
       completedAt: null,
       autoReminder: dto.autoReminder ?? false,
       reminderFrequency: dto.reminderFrequency ?? null,
-      notes: dto.notes ?? null,
       createdBy: userId,
       updatedBy: userId,
     });
@@ -120,12 +114,6 @@ export class SavingGoalService {
     };
 
     if (dto.title !== undefined) updateData.title = dto.title;
-    // if (dto.description !== undefined) updateData.description = dto.description;
-    // if (dto.icon !== undefined) updateData.icon = dto.icon;
-    // if (dto.color !== undefined) updateData.color = dto.color;
-    // if (dto.priority !== undefined)
-    //   updateData.priority = dto.priority as SavingGoalPriority;
-    // if (dto.notes !== undefined) updateData.notes = dto.notes;
     if (dto.autoReminder !== undefined)
       updateData.autoReminder = dto.autoReminder;
     if (dto.reminderFrequency !== undefined)
@@ -265,21 +253,16 @@ export class SavingGoalService {
       id: goal.id,
       userId: goal.userId,
       title: goal.title,
-      // description: goal.description,
-      // icon: goal.icon,
-      // color: goal.color,
       targetAmount: Number(goal.targetAmount),
       savedAmount: Number(goal.savedAmount),
       remainingAmount: Number(goal.remainingAmount),
       targetDate: goal.targetDate,
       startDate: goal.startDate,
-      // priority: goal.priority,
       status: goal.status,
       isCompleted: goal.isCompleted,
       completedAt: goal.completedAt,
       autoReminder: goal.autoReminder,
       reminderFrequency: goal.reminderFrequency,
-      // notes: goal.notes,
       createdBy: goal.createdBy,
       updatedBy: goal.updatedBy,
       deletedAt: goal.deletedAt,

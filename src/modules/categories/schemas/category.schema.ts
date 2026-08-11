@@ -6,7 +6,7 @@ import {
   PrimaryKey,
   Table,
 } from 'sequelize-typescript';
-import { CategoryType } from '../../transactions/enums/category-type.enum';
+import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 import { ICategory } from '../interfaces/category.interface';
 // Assuming User entity exists globally, but for now we define the column manually without ForeignKey if it causes circular issues,
 // or we can just define the column type directly since Sequelize doesn't strictly require @ForeignKey for simple queries if manually joined,
@@ -52,10 +52,10 @@ export class Category
   declare name: string;
 
   @Column({
-    type: DataType.ENUM(...Object.values(CategoryType)),
+    type: DataType.ENUM(...Object.values(CategoryTransactionType)),
     allowNull: false,
   })
-  declare type: CategoryType;
+  declare type: CategoryTransactionType;
 
   /**
    * NULL for system default categories.

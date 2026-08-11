@@ -1,4 +1,4 @@
-import { CategoryType } from '../enums/category-type.enum';
+import { TransactionType } from '../enums/transaction-type.enum';
 
 /**
  * @interface ICategory
@@ -27,7 +27,7 @@ export interface ICategory {
    * Whether this category classifies money in (INCOME) or money out (EXPENSE).
    * This is the field that determines transaction type.
    */
-  readonly type: CategoryType;
+  readonly type: TransactionType;
 
   /**
    * Whether this is a system default category (visible to all users).

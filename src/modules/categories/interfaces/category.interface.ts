@@ -1,4 +1,4 @@
-import { CategoryType } from '../../transactions/enums/category-type.enum';
+import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 
 /**
  * @interface ICategory
@@ -28,7 +28,7 @@ import { CategoryType } from '../../transactions/enums/category-type.enum';
 export interface ICategory {
   readonly id: string;
   readonly name: string;
-  readonly type: CategoryType;
+  readonly type: CategoryTransactionType;
   readonly created_by: string | null;
   readonly is_default: boolean;
   readonly is_active: boolean;

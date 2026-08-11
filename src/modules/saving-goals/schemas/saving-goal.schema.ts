@@ -14,7 +14,7 @@ import { ReminderFrequency } from '../enums/reminder-frequency.enum';
   tableName: 'saving_goals',
   paranoid: true, // soft delete support via deletedAt
   timestamps: true,
-  underscored: false,
+  underscored: true,
 })
 export class SavingGoal extends Model {
   @Column({
@@ -67,13 +67,6 @@ export class SavingGoal extends Model {
 
   // ─── Meta ─────────────────────────────────────────────────────────────────
 
-  // @Column({
-  //   type: DataType.ENUM(...Object.values(SavingGoalPriority)),
-  //   defaultValue: SavingGoalPriority.MEDIUM,
-  //   allowNull: false,
-  // })
-  // declare priority: SavingGoalPriority;
-
   @Column({
     type: DataType.ENUM(...Object.values(SavingGoalStatus)),
     defaultValue: SavingGoalStatus.ACTIVE,
@@ -106,10 +99,6 @@ export class SavingGoal extends Model {
   declare reminderFrequency: ReminderFrequency | null;
 
   // ─── Notes & Audit ────────────────────────────────────────────────────────
-
-  /** Optional user notes */
-  // @Column({ type: DataType.TEXT, allowNull: true })
-  // declare notes: string | null;
 
   /** ID of the user who created this goal */
   @Column({ type: DataType.UUID, allowNull: true })

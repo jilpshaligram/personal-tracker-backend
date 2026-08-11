@@ -16,10 +16,7 @@ import { Bill } from '../../bills/schemas/bill.schema';
   timestamps: true,
   updatedAt: false,
   underscored: false,
-  indexes: [
-    { fields: ['billId'] },
-    { fields: ['paymentDate'] },
-  ],
+  indexes: [{ fields: ['billId'] }, { fields: ['paymentDate'] }],
 })
 export class BillHistory extends Model {
   @Column({

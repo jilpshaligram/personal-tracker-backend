@@ -1,5 +1,5 @@
 /**
- * @enum CategoryType
+ * @enum TransactionType
  *
  * @description
  * Represents whether a category classifies money coming IN or going OUT.
@@ -15,7 +15,7 @@
  * Dependency direction must always be:
  *   Transaction Module → shared enum → (no Category Module import needed)
  *
- * If Transaction Module imported CategoryType from Category Module, and
+ * If Transaction Module imported TransactionType from Category Module, and
  * Category Module later needed anything from Transaction Module, NestJS
  * would throw a circular dependency error at runtime.
  *
@@ -39,10 +39,10 @@
  * - Transaction interfaces: typing the derived `type` field in responses
  * - Filter DTO: filtering transactions by INCOME or EXPENSE
  */
-export enum CategoryType {
-  /** Money received — salary, freelance income, investment returns */
+export enum TransactionType {
   INCOME = 'INCOME',
-
-  /** Money spent — groceries, rent, transport, entertainment */
   EXPENSE = 'EXPENSE',
+  TRANSFER_TO_SAVING = 'TRANSFER_TO_SAVING',
+  TRANSFER_FROM_SAVING = 'TRANSFER_FROM_SAVING',
+  OPENING_BALANCE = 'OPENING_BALANCE',
 }

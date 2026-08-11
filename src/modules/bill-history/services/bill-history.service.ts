@@ -57,7 +57,7 @@ export class BillHistoryService {
     };
   }
 
-  async deleteHistory(): Promise<never> {
+  deleteHistory(): never {
     throw new ForbiddenException({
       success: false,
       message: 'Bill history cannot be deleted',
@@ -65,7 +65,7 @@ export class BillHistoryService {
     });
   }
 
-  async archiveHistory(): Promise<never> {
+  archiveHistory(): never {
     throw new ForbiddenException({
       success: false,
       message: 'Bill history cannot be archived',

@@ -65,7 +65,7 @@ export class BillService {
       sortOrder,
     } = filter;
 
-    const where: any = {
+    const where: Record<symbol | string, any> = {
       userId,
       deletedAt: null,
     };
@@ -75,9 +75,10 @@ export class BillService {
     if (isRecurring !== undefined) where.isRecurring = isRecurring;
 
     if (dueFrom || dueTo) {
-      where.dueDate = {};
-      if (dueFrom) where.dueDate[Op.gte] = dueFrom;
-      if (dueTo) where.dueDate[Op.lte] = dueTo;
+      const dueDateFilter: Record<symbol, string> = {};
+      if (dueFrom) dueDateFilter[Op.gte] = dueFrom;
+      if (dueTo) dueDateFilter[Op.lte] = dueTo;
+      where.dueDate = dueDateFilter;
     }
 
     if (search) {
@@ -149,7 +150,7 @@ export class BillService {
       });
     }
 
-    await this.validateBillOwnership(bill, userId);
+    this.validateBillOwnership(bill, userId);
 
     return BillMapper.toResponseDto(bill);
   }
@@ -171,7 +172,7 @@ export class BillService {
       });
     }
 
-    await this.validateBillOwnership(bill, userId);
+    this.validateBillOwnership(bill, userId);
 
     await bill.update(dto);
 
@@ -191,7 +192,7 @@ export class BillService {
       });
     }
 
-    await this.validateBillOwnership(bill, userId);
+    this.validateBillOwnership(bill, userId);
 
     await bill.destroy();
   }
@@ -216,7 +217,7 @@ export class BillService {
         });
       }
 
-      await this.validateBillOwnership(bill, userId);
+      this.validateBillOwnership(bill, userId);
 
       if (bill.status === BillStatus.PAID) {
         throw new ConflictException({
@@ -313,7 +314,7 @@ export class BillService {
     );
   }
 
-  async validateBillOwnership(bill: Bill, userId: string): Promise<void> {
+  validateBillOwnership(bill: Bill, userId: string): void {
     if (bill.userId !== userId) {
       throw new ForbiddenException({
         success: false,
@@ -338,7 +339,7 @@ export class BillService {
     );
   }
 
-  async sendReminder(billId: string): Promise<void> {
+  sendReminder(billId: string): void {
     // Reminder logic placeholder - integrate with notification service
     console.log(`Sending reminder for bill ${billId}`);
   }
