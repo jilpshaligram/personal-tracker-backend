@@ -10,6 +10,9 @@ export const updateWalletSchema = z.object({
 });
 
 export class UpdateWalletDto {
-  @ApiPropertyOptional({ example: 'EUR', description: '3-character ISO currency code' })
+  @ApiPropertyOptional({
+    example: 'EUR',
+    description: '3-character ISO currency code',
+  })
   currency?: string;
 }

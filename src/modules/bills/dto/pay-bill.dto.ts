@@ -10,15 +10,26 @@ export const payBillSchema = z.object({
 });
 
 export class PayBillDto {
-  @ApiProperty({ example: 120.50, description: 'Paid amount' })
+  @ApiProperty({ example: 120.5, description: 'Paid amount' })
   amountPaid: number;
 
-  @ApiProperty({ enum: PaymentMethod, example: PaymentMethod.CARD, description: 'Payment method used' })
+  @ApiProperty({
+    enum: PaymentMethod,
+    example: PaymentMethod.CARD,
+    description: 'Payment method used',
+  })
   paymentMethod: PaymentMethod;
 
-  @ApiPropertyOptional({ example: 'Paid via mobile banking', description: 'Payment remarks' })
+  @ApiPropertyOptional({
+    example: 'Paid via mobile banking',
+    description: 'Payment remarks',
+  })
   remarks?: string;
 
-  @ApiPropertyOptional({ example: true, default: false, description: 'Create corresponding transaction entry' })
+  @ApiPropertyOptional({
+    example: true,
+    default: false,
+    description: 'Create corresponding transaction entry',
+  })
   createTransaction?: boolean;
 }

@@ -53,7 +53,12 @@ export class BillService {
     filter: BillFilterDto,
   ): Promise<{
     data: BillResponseDto[];
-    pagination: { page: number; limit: number; total: number; totalPages: number };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   }> {
     const {
       page,

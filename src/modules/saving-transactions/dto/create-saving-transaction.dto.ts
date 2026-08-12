@@ -17,12 +17,19 @@ export const createSavingTransactionSchema = z.object({
 });
 
 export class CreateSavingTransactionDto {
-  @ApiProperty({ example: 'CONTRIBUTION', enum: ['CONTRIBUTION', 'WITHDRAWAL'], description: 'Transaction type' })
+  @ApiProperty({
+    example: 'CONTRIBUTION',
+    enum: ['CONTRIBUTION', 'WITHDRAWAL'],
+    description: 'Transaction type',
+  })
   type: 'CONTRIBUTION' | 'WITHDRAWAL';
 
   @ApiProperty({ example: 100, description: 'Transaction amount' })
   amount: number;
 
-  @ApiPropertyOptional({ example: 'Monthly savings deposit', description: 'Optional note' })
+  @ApiPropertyOptional({
+    example: 'Monthly savings deposit',
+    description: 'Optional note',
+  })
   note?: string;
 }
