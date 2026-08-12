@@ -22,6 +22,10 @@ export class CreateCategoryDto {
   @ApiProperty({ example: 'Dining Out', description: 'Category name' })
   name: string;
 
-  @ApiProperty({ enum: CategoryTransactionType, example: CategoryTransactionType.EXPENSE, description: 'Category transaction type' })
+  @ApiProperty({
+    enum: CategoryTransactionType,
+    example: CategoryTransactionType.EXPENSE,
+    description: 'Category transaction type',
+  })
   type: CategoryTransactionType;
 }

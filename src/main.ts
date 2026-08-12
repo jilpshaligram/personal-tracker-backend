@@ -26,7 +26,9 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Personal Document & Expense Tracker API')
-    .setDescription('Comprehensive API documentation for managing expenses, documents, budgets, saving goals, and user accounts.')
+    .setDescription(
+      'Comprehensive API documentation for managing expenses, documents, budgets, saving goals, and user accounts.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

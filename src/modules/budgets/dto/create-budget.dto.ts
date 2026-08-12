@@ -23,10 +23,17 @@ export class CreateBudgetDto {
   @ApiProperty({ example: 1000, description: 'Budget limit amount' })
   amount: number;
 
-  @ApiProperty({ enum: BudgetPeriod, example: BudgetPeriod.MONTHLY, description: 'Budget period' })
+  @ApiProperty({
+    enum: BudgetPeriod,
+    example: BudgetPeriod.MONTHLY,
+    description: 'Budget period',
+  })
   period: BudgetPeriod;
 
-  @ApiProperty({ example: '2026-08-01', description: 'Start date (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2026-08-01',
+    description: 'Start date (YYYY-MM-DD)',
+  })
   startDate: string;
 
   @ApiProperty({ example: '2026-08-31', description: 'End date (YYYY-MM-DD)' })

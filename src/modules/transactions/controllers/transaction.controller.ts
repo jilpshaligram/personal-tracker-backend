@@ -32,8 +32,15 @@ export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create Transaction', description: 'Creates an income, expense, opening balance, or transfer transaction.' })
-  @ApiResponse({ status: 201, description: 'Transaction created successfully.' })
+  @ApiOperation({
+    summary: 'Create Transaction',
+    description:
+      'Creates an income, expense, opening balance, or transfer transaction.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Transaction created successfully.',
+  })
   @ApiResponse({ status: 400, description: 'Validation error.' })
   async create(
     @Req() req: Request & { user: IJwtPayload },
@@ -54,8 +61,15 @@ export class TransactionController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get All Transactions', description: 'Retrieves all transactions belonging to the authenticated user.' })
-  @ApiResponse({ status: 200, description: 'Transactions retrieved successfully.' })
+  @ApiOperation({
+    summary: 'Get All Transactions',
+    description:
+      'Retrieves all transactions belonging to the authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions retrieved successfully.',
+  })
   async findAll(@Req() req: Request & { user: IJwtPayload }) {
     const userId = req.user.sub;
     const transactions = await this.transactionService.findAll(userId);
@@ -68,9 +82,15 @@ export class TransactionController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get Transaction by ID', description: 'Retrieves a single transaction by ID.' })
+  @ApiOperation({
+    summary: 'Get Transaction by ID',
+    description: 'Retrieves a single transaction by ID.',
+  })
   @ApiParam({ name: 'id', description: 'Transaction UUID' })
-  @ApiResponse({ status: 200, description: 'Transaction retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction retrieved successfully.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction not found.' })
   async findOne(
     @Param('id') id: string,

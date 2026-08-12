@@ -39,12 +39,18 @@ import { successResponse } from '../../../common/responses/api-response.helper';
 export class DocumentCategoryController {
   constructor(
     private readonly documentCategoryService: DocumentCategoryService,
-  ) { }
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create Document Category', description: 'Creates a new document classification category.' })
-  @ApiResponse({ status: 201, description: 'Document category created successfully.' })
+  @ApiOperation({
+    summary: 'Create Document Category',
+    description: 'Creates a new document classification category.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Document category created successfully.',
+  })
   async create(
     @Body(new ZodValidationPipe(createDocumentCategorySchema))
     dto: CreateDocumentCategoryDto,
@@ -55,8 +61,14 @@ export class DocumentCategoryController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all Document Categories', description: 'Retrieves document categories with filtering.' })
-  @ApiResponse({ status: 200, description: 'Document categories fetched successfully.' })
+  @ApiOperation({
+    summary: 'Get all Document Categories',
+    description: 'Retrieves document categories with filtering.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Document categories fetched successfully.',
+  })
   async findAll(@Query() query: QueryDocumentCategoryDto) {
     const data = await this.documentCategoryService.findAll(query);
 
@@ -64,9 +76,15 @@ export class DocumentCategoryController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get Document Category by ID', description: 'Retrieves document category details.' })
+  @ApiOperation({
+    summary: 'Get Document Category by ID',
+    description: 'Retrieves document category details.',
+  })
   @ApiParam({ name: 'id', description: 'Category UUID' })
-  @ApiResponse({ status: 200, description: 'Document category fetched successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Document category fetched successfully.',
+  })
   async findOne(@Param('id') id: string) {
     const data = await this.documentCategoryService.findOne(id);
 
@@ -74,9 +92,15 @@ export class DocumentCategoryController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update Document Category', description: 'Updates document category details.' })
+  @ApiOperation({
+    summary: 'Update Document Category',
+    description: 'Updates document category details.',
+  })
   @ApiParam({ name: 'id', description: 'Category UUID' })
-  @ApiResponse({ status: 200, description: 'Document category updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Document category updated successfully.',
+  })
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateDocumentCategorySchema))
@@ -88,9 +112,15 @@ export class DocumentCategoryController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete Document Category', description: 'Deletes a document category.' })
+  @ApiOperation({
+    summary: 'Delete Document Category',
+    description: 'Deletes a document category.',
+  })
   @ApiParam({ name: 'id', description: 'Category UUID' })
-  @ApiResponse({ status: 200, description: 'Document category deleted successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Document category deleted successfully.',
+  })
   async remove(@Param('id') id: string) {
     await this.documentCategoryService.remove(id);
 

@@ -38,17 +38,28 @@ export class UsersController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all users', description: 'Supports pagination, search, role/status/gender filtering, and sorting.' })
+  @ApiOperation({
+    summary: 'Get all users',
+    description:
+      'Supports pagination, search, role/status/gender filtering, and sorting.',
+  })
   @ApiQuery({ name: 'page', required: false, example: '1' })
   @ApiQuery({ name: 'limit', required: false, example: '10' })
-  @ApiQuery({ name: 'q', required: false, description: 'Search term for name/email/phone' })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description: 'Search term for name/email/phone',
+  })
   @ApiQuery({ name: 'role', required: false, enum: UserRole })
   @ApiQuery({ name: 'status', required: false, enum: UserStatus })
   @ApiQuery({ name: 'gender', required: false, enum: Gender })
   @ApiQuery({ name: 'isVerified', required: false, type: Boolean })
   @ApiQuery({ name: 'sortBy', required: false, example: 'createdAt' })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
-  @ApiResponse({ status: 200, description: 'Users list retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Users list retrieved successfully.',
+  })
   async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -116,7 +127,10 @@ export class UsersController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get user by ID', description: 'Retrieves user details by ID.' })
+  @ApiOperation({
+    summary: 'Get user by ID',
+    description: 'Retrieves user details by ID.',
+  })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User found.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
@@ -136,7 +150,10 @@ export class UsersController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update user profile', description: 'Updates user details.' })
+  @ApiOperation({
+    summary: 'Update user profile',
+    description: 'Updates user details.',
+  })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User updated successfully.' })
   async update(
@@ -151,7 +168,10 @@ export class UsersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete user', description: 'Soft deletes user account.' })
+  @ApiOperation({
+    summary: 'Delete user',
+    description: 'Soft deletes user account.',
+  })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User deleted successfully.' })
   async remove(@Param('id') id: string) {

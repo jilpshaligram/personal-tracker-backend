@@ -51,28 +51,45 @@ export const createBillSchema = z
   );
 
 export class CreateBillDto {
-  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Category UUID' })
+  @ApiProperty({
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    description: 'Category UUID',
+  })
   categoryId: string;
 
   @ApiProperty({ example: 'Electricity Bill', description: 'Bill title' })
   title: string;
 
-  @ApiPropertyOptional({ example: 'Monthly electric power bill', description: 'Description' })
+  @ApiPropertyOptional({
+    example: 'Monthly electric power bill',
+    description: 'Description',
+  })
   description?: string;
 
-  @ApiProperty({ example: 120.50, description: 'Bill amount' })
+  @ApiProperty({ example: 120.5, description: 'Bill amount' })
   amount: number;
 
   @ApiProperty({ example: '2026-09-01', description: 'Due date (YYYY-MM-DD)' })
   dueDate: string;
 
-  @ApiPropertyOptional({ example: true, default: false, description: 'Is bill recurring' })
+  @ApiPropertyOptional({
+    example: true,
+    default: false,
+    description: 'Is bill recurring',
+  })
   isRecurring?: boolean;
 
-  @ApiPropertyOptional({ enum: RecurringType, example: RecurringType.MONTHLY, description: 'Recurring frequency' })
+  @ApiPropertyOptional({
+    enum: RecurringType,
+    example: RecurringType.MONTHLY,
+    description: 'Recurring frequency',
+  })
   recurringType?: RecurringType;
 
-  @ApiPropertyOptional({ example: [1, 3, 7], description: 'Reminder days before due date' })
+  @ApiPropertyOptional({
+    example: [1, 3, 7],
+    description: 'Reminder days before due date',
+  })
   reminderDaysBefore?: number[];
 
   @ApiPropertyOptional({ description: 'Bill attachment details' })
@@ -84,6 +101,9 @@ export class CreateBillDto {
     size: number;
   };
 
-  @ApiPropertyOptional({ example: 'Account #12345', description: 'Additional notes' })
+  @ApiPropertyOptional({
+    example: 'Account #12345',
+    description: 'Additional notes',
+  })
   notes?: string;
 }
