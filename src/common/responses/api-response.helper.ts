@@ -16,10 +16,11 @@ export function errorResponse(message: string, errors: unknown[] = []) {
 }
 
 export const apiResponse = {
-  success: <T = unknown>(message: string, data?: T) => ({
+  success: <T = unknown>(message: string, data?: T, pagination?: any) => ({
     success: true,
     message,
     ...(data !== undefined && { data }),
+    ...(pagination !== undefined && { pagination }),
   }),
   error: (message: string, errors: unknown[] = []) => ({
     success: false,

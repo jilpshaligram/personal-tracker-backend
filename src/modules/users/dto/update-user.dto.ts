@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export const updateUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required').optional(),
@@ -22,4 +23,25 @@ export const updateUserSchema = z.object({
   notificationEnabled: z.boolean().optional(),
 });
 
-export type UpdateUserDto = z.infer<typeof updateUserSchema>;
+export class UpdateUserDto {
+  @ApiPropertyOptional({ example: 'John', description: 'First name' })
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Doe', description: 'Last name' })
+  lastName?: string;
+
+  @ApiPropertyOptional({ example: '1234567890', description: 'Phone number' })
+  phone?: string;
+
+  @ApiPropertyOptional({ example: '1995-05-15', description: 'Date of birth (YYYY-MM-DD)' })
+  dateOfBirth?: string;
+
+  @ApiPropertyOptional({ example: 'MALE', enum: ['MALE', 'FEMALE', 'OTHER'], description: 'Gender' })
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', description: 'Profile image URL' })
+  profileImage?: string;
+
+  @ApiPropertyOptional({ example: true, description: 'Enable/disable notifications' })
+  notificationEnabled?: boolean;
+}

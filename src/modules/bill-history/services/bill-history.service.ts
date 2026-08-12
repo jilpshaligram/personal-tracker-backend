@@ -24,13 +24,29 @@ export class BillHistoryService {
     });
   }
 
-  async findByBill(billId: string): Promise<BillHistoryResponseDto[]> {
-    const histories = await this.billHistoryModel.findAll({
+  async findByBill(
+    billId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: BillHistoryResponseDto[]; pagination: any }> {
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await this.billHistoryModel.findAndCountAll({
       where: { billId },
       order: [['paymentDate', 'DESC']],
+      limit,
+      offset,
     });
 
-    return BillHistoryMapper.toResponseDtoList(histories);
+    return {
+      data: BillHistoryMapper.toResponseDtoList(rows),
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit),
+      },
+    };
   }
 
   async getPaymentSummary(billId: string): Promise<PaymentSummary> {

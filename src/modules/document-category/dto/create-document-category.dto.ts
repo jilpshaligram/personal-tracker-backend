@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const createDocumentCategorySchema = z.object({
@@ -12,10 +13,12 @@ export type CreateDocumentCategoryDtoInput = z.infer<
 >;
 
 export class CreateDocumentCategoryDto {
+  @ApiProperty({ example: 'Identification Documents', description: 'Category name' })
   @IsString()
   @IsNotEmpty()
   name: string;
 
+  @ApiPropertyOptional({ enum: ['active', 'inactive'], example: 'active', default: 'active', description: 'Status' })
   @IsOptional()
   @IsString()
   status?: 'active' | 'inactive';

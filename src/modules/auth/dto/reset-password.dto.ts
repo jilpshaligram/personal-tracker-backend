@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const resetPasswordSchema = z
   .object({
@@ -20,4 +21,13 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
-export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
+export class ResetPasswordDto {
+  @ApiProperty({ example: 'john.doe@example.com', description: 'User email' })
+  email: string;
+
+  @ApiProperty({ example: 'NewPassword123!', description: 'New password' })
+  newPassword: string;
+
+  @ApiProperty({ example: 'NewPassword123!', description: 'Confirm new password' })
+  confirmPassword: string;
+}

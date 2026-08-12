@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export const updateSavingTransactionSchema = z.object({
   type: z
@@ -18,6 +19,13 @@ export const updateSavingTransactionSchema = z.object({
   note: z.string().max(500, 'Note too long').optional(),
 });
 
-export type UpdateSavingTransactionDto = z.infer<
-  typeof updateSavingTransactionSchema
->;
+export class UpdateSavingTransactionDto {
+  @ApiPropertyOptional({ example: 'CONTRIBUTION', enum: ['CONTRIBUTION', 'WITHDRAWAL'], description: 'Transaction type' })
+  type?: 'CONTRIBUTION' | 'WITHDRAWAL';
+
+  @ApiPropertyOptional({ example: 150, description: 'Transaction amount' })
+  amount?: number;
+
+  @ApiPropertyOptional({ example: 'Updated note', description: 'Optional note' })
+  note?: string;
+}

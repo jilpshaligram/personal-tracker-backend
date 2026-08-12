@@ -1,7 +1,11 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const forgotPinSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
-export type ForgotPinDto = z.infer<typeof forgotPinSchema>;
+export class ForgotPinDto {
+  @ApiProperty({ example: 'john.doe@example.com', description: 'User email' })
+  email: string;
+}

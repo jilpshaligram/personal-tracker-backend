@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const resendEmailOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -11,5 +12,12 @@ export const resendPhoneOtpSchema = z.object({
     .regex(/^\d+$/, 'Phone must be numeric'),
 });
 
-export type ResendEmailOtpDto = z.infer<typeof resendEmailOtpSchema>;
-export type ResendPhoneOtpDto = z.infer<typeof resendPhoneOtpSchema>;
+export class ResendEmailOtpDto {
+  @ApiProperty({ example: 'john.doe@example.com', description: 'User email' })
+  email: string;
+}
+
+export class ResendPhoneOtpDto {
+  @ApiProperty({ example: '1234567890', description: 'Phone number' })
+  phone: string;
+}

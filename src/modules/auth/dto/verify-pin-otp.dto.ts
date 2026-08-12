@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const verifyPinOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -8,4 +9,10 @@ export const verifyPinOtpSchema = z.object({
     .regex(/^\d+$/, 'OTP must be numeric'),
 });
 
-export type VerifyPinOtpDto = z.infer<typeof verifyPinOtpSchema>;
+export class VerifyPinOtpDto {
+  @ApiProperty({ example: 'john.doe@example.com', description: 'User email' })
+  email: string;
+
+  @ApiProperty({ example: '123456', description: '6-digit OTP' })
+  otp: string;
+}

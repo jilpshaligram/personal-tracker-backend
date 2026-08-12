@@ -10,27 +10,32 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CategoriesService } from '../services/categories.service';
 import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
-import { createCategorySchema } from '../dto/create-category.dto';
-import type { CreateCategoryDto } from '../dto/create-category.dto';
-import { updateCategorySchema } from '../dto/update-category.dto';
-import type { UpdateCategoryDto } from '../dto/update-category.dto';
+import { createCategorySchema, CreateCategoryDto } from '../dto/create-category.dto';
+import { updateCategorySchema, UpdateCategoryDto } from '../dto/update-category.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { Request } from 'express';
 import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 
+@ApiTags('Categories')
+@ApiBearerAuth()
 @Controller('categories')
 @UseGuards(AuthGuard)
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(private readonly categoriesService: CategoriesService) { }
 
-  /**
-   * Creates a new custom category.
-   * Zod validation ensures exactly what is required is provided.
-   */
   @Post()
+  @ApiOperation({ summary: 'Create custom category', description: 'Creates a new user-defined custom category.' })
+  @ApiResponse({ status: 201, description: 'Category created successfully.' })
   async create(
     @Req() req: Request & { user: IJwtPayload },
     @Body(new ZodValidationPipe(createCategorySchema))
@@ -49,10 +54,9 @@ export class CategoriesController {
     };
   }
 
-  /**
-   * Retrieves all default + custom categories for the authenticated user.
-   */
   @Get()
+  @ApiOperation({ summary: 'Get all categories', description: 'Retrieves all system default and custom user categories.' })
+  @ApiResponse({ status: 200, description: 'Categories retrieved successfully.' })
   async findAll(
     @Req() req: Request & { user: IJwtPayload },
     @Query('type') type?: CategoryTransactionType,
@@ -70,10 +74,10 @@ export class CategoriesController {
     };
   }
 
-  /**
-   * Retrieves a specific category. Validates user owns it or it's default.
-   */
   @Get(':id')
+  @ApiOperation({ summary: 'Get category by ID', description: 'Retrieves a single category by ID.' })
+  @ApiParam({ name: 'id', description: 'Category UUID' })
+  @ApiResponse({ status: 200, description: 'Category retrieved successfully.' })
   async findOne(
     @Param('id') id: string,
     @Req() req: Request & { user: IJwtPayload },
@@ -88,11 +92,10 @@ export class CategoriesController {
     };
   }
 
-  /**
-   * Updates an existing custom category.
-   * System default categories cannot be modified.
-   */
   @Patch(':id')
+  @ApiOperation({ summary: 'Update custom category', description: 'Updates custom category details (System defaults cannot be edited).' })
+  @ApiParam({ name: 'id', description: 'Category UUID' })
+  @ApiResponse({ status: 200, description: 'Category updated successfully.' })
   async update(
     @Param('id') id: string,
     @Req() req: Request & { user: IJwtPayload },
@@ -113,11 +116,10 @@ export class CategoriesController {
     };
   }
 
-  /**
-   * Deletes a custom category.
-   * System default categories cannot be deleted.
-   */
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete custom category', description: 'Deletes a custom category (System defaults cannot be deleted).' })
+  @ApiParam({ name: 'id', description: 'Category UUID' })
+  @ApiResponse({ status: 200, description: 'Category deleted successfully.' })
   async remove(
     @Param('id') id: string,
     @Req() req: Request & { user: IJwtPayload },

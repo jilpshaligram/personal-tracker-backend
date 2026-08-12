@@ -51,7 +51,10 @@ export class BillService {
   async findAll(
     userId: string,
     filter: BillFilterDto,
-  ): Promise<{ items: BillResponseDto[]; pagination: any }> {
+  ): Promise<{
+    data: BillResponseDto[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
     const {
       page,
       limit,
@@ -98,7 +101,7 @@ export class BillService {
     });
 
     return {
-      items: BillMapper.toResponseDtoList(rows),
+      data: BillMapper.toResponseDtoList(rows),
       pagination: {
         page,
         limit,
@@ -111,13 +114,17 @@ export class BillService {
   async findUpcoming(
     userId: string,
     days: number = 7,
-  ): Promise<BillResponseDto[]> {
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: BillResponseDto[]; pagination: any }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const futureDate = new Date(today);
     futureDate.setDate(futureDate.getDate() + days);
 
-    const bills = await this.billModel.findAll({
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await this.billModel.findAndCountAll({
       where: {
         userId,
         deletedAt: null,
@@ -132,9 +139,19 @@ export class BillService {
         },
       },
       order: [['dueDate', 'ASC']],
+      limit,
+      offset,
     });
 
-    return BillMapper.toResponseDtoList(bills);
+    return {
+      data: BillMapper.toResponseDtoList(rows),
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit),
+      },
+    };
   }
 
   async findOne(userId: string, id: string): Promise<BillResponseDto> {

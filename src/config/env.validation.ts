@@ -7,6 +7,8 @@ import {
   type ValidationError,
 } from 'class-validator';
 
+import { plainToInstance, Type } from 'class-transformer';
+
 enum Environment {
   Development = 'development',
   Production = 'production',
@@ -21,12 +23,14 @@ class EnvironmentVariables {
 
   @IsNumber()
   @IsOptional()
+  @Type(() => Number)
   PORT: number = 3000;
 
   @IsString()
   DB_HOST: string;
 
   @IsNumber()
+  @Type(() => Number)
   DB_PORT: number;
 
   @IsString()
@@ -54,10 +58,13 @@ class EnvironmentVariables {
 export function validate(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const validatedConfig = Object.assign(
-    new EnvironmentVariables(),
-    config as Record<string, any>,
-  ) as EnvironmentVariables;
+  const validatedConfig = plainToInstance(
+    EnvironmentVariables,
+    config,
+    {
+      enableImplicitConversion: true,
+    },
+  );
 
   const errors: ValidationError[] = validateSync(validatedConfig, {
     skipMissingProperties: false,

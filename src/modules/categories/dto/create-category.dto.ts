@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 
 /**
@@ -17,4 +18,10 @@ export const createCategorySchema = z.object({
   type: z.nativeEnum(CategoryTransactionType),
 });
 
-export type CreateCategoryDto = z.infer<typeof createCategorySchema>;
+export class CreateCategoryDto {
+  @ApiProperty({ example: 'Dining Out', description: 'Category name' })
+  name: string;
+
+  @ApiProperty({ enum: CategoryTransactionType, example: CategoryTransactionType.EXPENSE, description: 'Category transaction type' })
+  type: CategoryTransactionType;
+}

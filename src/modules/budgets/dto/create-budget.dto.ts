@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 import { BudgetPeriod } from '../enums/budget-period.enum';
 
 export const createBudgetSchema = z
@@ -18,4 +19,16 @@ export const createBudgetSchema = z
   })
   .strict();
 
-export type CreateBudgetDto = z.infer<typeof createBudgetSchema>;
+export class CreateBudgetDto {
+  @ApiProperty({ example: 1000, description: 'Budget limit amount' })
+  amount: number;
+
+  @ApiProperty({ enum: BudgetPeriod, example: BudgetPeriod.MONTHLY, description: 'Budget period' })
+  period: BudgetPeriod;
+
+  @ApiProperty({ example: '2026-08-01', description: 'Start date (YYYY-MM-DD)' })
+  startDate: string;
+
+  @ApiProperty({ example: '2026-08-31', description: 'End date (YYYY-MM-DD)' })
+  endDate: string;
+}

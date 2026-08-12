@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const createWalletSchema = z.object({
   currency: z
@@ -7,4 +8,7 @@ export const createWalletSchema = z.object({
     .toUpperCase(),
 });
 
-export type CreateWalletDto = z.infer<typeof createWalletSchema>;
+export class CreateWalletDto {
+  @ApiProperty({ example: 'USD', description: '3-character ISO currency code' })
+  currency: string;
+}

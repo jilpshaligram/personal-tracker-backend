@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export const createSavingGoalSchema = z
   .object({
@@ -40,4 +41,19 @@ export const createSavingGoalSchema = z
     },
   );
 
-export type CreateSavingGoalDto = z.infer<typeof createSavingGoalSchema>;
+export class CreateSavingGoalDto {
+  @ApiProperty({ example: 'Emergency Fund', description: 'Title of the saving goal' })
+  title: string;
+
+  @ApiProperty({ example: 5000, description: 'Target financial amount' })
+  targetAmount: number;
+
+  @ApiProperty({ example: '2026-12-31', description: 'Target completion date (YYYY-MM-DD)' })
+  targetDate: string;
+
+  @ApiPropertyOptional({ example: true, description: 'Enable automatic reminders' })
+  autoReminder?: boolean;
+
+  @ApiPropertyOptional({ example: 'MONTHLY', enum: ['DAILY', 'WEEKLY', 'MONTHLY'], description: 'Reminder frequency' })
+  reminderFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+}

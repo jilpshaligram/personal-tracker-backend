@@ -7,6 +7,13 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { TransactionService } from '../services/transaction.service';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -17,12 +24,17 @@ import {
 import { Request } from 'express';
 import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 
+@ApiTags('Transactions')
+@ApiBearerAuth()
 @Controller('transactions')
 @UseGuards(AuthGuard)
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create Transaction', description: 'Creates an income, expense, opening balance, or transfer transaction.' })
+  @ApiResponse({ status: 201, description: 'Transaction created successfully.' })
+  @ApiResponse({ status: 400, description: 'Validation error.' })
   async create(
     @Req() req: Request & { user: IJwtPayload },
     @Body(new ZodValidationPipe(createTransactionSchema))
@@ -42,10 +54,10 @@ export class TransactionController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get All Transactions', description: 'Retrieves all transactions belonging to the authenticated user.' })
+  @ApiResponse({ status: 200, description: 'Transactions retrieved successfully.' })
   async findAll(@Req() req: Request & { user: IJwtPayload }) {
     const userId = req.user.sub;
-    // Strict isolation: User A cannot see User B's transactions because
-    // findAllByUserId uses where: { userId } natively in the repository.
     const transactions = await this.transactionService.findAll(userId);
 
     return {
@@ -56,12 +68,15 @@ export class TransactionController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get Transaction by ID', description: 'Retrieves a single transaction by ID.' })
+  @ApiParam({ name: 'id', description: 'Transaction UUID' })
+  @ApiResponse({ status: 200, description: 'Transaction retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'Transaction not found.' })
   async findOne(
     @Param('id') id: string,
     @Req() req: Request & { user: IJwtPayload },
   ) {
     const userId = req.user.sub;
-    // Strict isolation: findOneByIdAndUserId uses where: { id, userId } natively
     const transaction = await this.transactionService.findOne(id, userId);
 
     return {

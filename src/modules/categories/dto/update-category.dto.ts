@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { createCategorySchema } from './create-category.dto';
+import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 
 /**
  * @schema updateCategorySchema
@@ -14,4 +16,10 @@ export const updateCategorySchema = createCategorySchema
     message: 'At least one field must be provided for update.',
   });
 
-export type UpdateCategoryDto = z.infer<typeof updateCategorySchema>;
+export class UpdateCategoryDto {
+  @ApiPropertyOptional({ example: 'Restaurants & Fine Dining', description: 'Category name' })
+  name?: string;
+
+  @ApiPropertyOptional({ enum: CategoryTransactionType, example: CategoryTransactionType.EXPENSE, description: 'Category type' })
+  type?: CategoryTransactionType;
+}

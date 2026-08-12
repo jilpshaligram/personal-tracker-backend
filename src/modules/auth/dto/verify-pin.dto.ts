@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const verifyPinSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -8,4 +9,10 @@ export const verifyPinSchema = z.object({
     .regex(/^\d+$/, 'PIN must be numeric'),
 });
 
-export type VerifyPinDto = z.infer<typeof verifyPinSchema>;
+export class VerifyPinDto {
+  @ApiProperty({ example: 'john.doe@example.com', description: 'User email' })
+  email: string;
+
+  @ApiProperty({ example: '1234', description: '4-digit PIN' })
+  pin: string;
+}

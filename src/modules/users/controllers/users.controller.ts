@@ -11,47 +11,52 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UsersService } from '../services/users.service';
 import type { FindAllOptions } from '../services/users.service';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
-import { updateUserSchema } from '../dto/update-user.dto';
-import type { UpdateUserDto } from '../dto/update-user.dto';
+import { updateUserSchema, UpdateUserDto } from '../dto/update-user.dto';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
 import { Gender } from '../enums/gender.enum';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /**
-   * GET /users
-   *
-   * Pagination  : ?page=1&limit=10
-   * Search      : ?q=john         — searches firstName, lastName, email, phone
-   * Filters     : ?role=USER&status=ACTIVE&gender=MALE&isVerified=true
-   * Sorting     : ?sortBy=firstName&sortOrder=ASC
-   *
-   * Example:
-   *   GET /users?q=john&status=ACTIVE&sortBy=firstName&sortOrder=ASC&page=1&limit=10
-   */
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all users', description: 'Supports pagination, search, role/status/gender filtering, and sorting.' })
+  @ApiQuery({ name: 'page', required: false, example: '1' })
+  @ApiQuery({ name: 'limit', required: false, example: '10' })
+  @ApiQuery({ name: 'q', required: false, description: 'Search term for name/email/phone' })
+  @ApiQuery({ name: 'role', required: false, enum: UserRole })
+  @ApiQuery({ name: 'status', required: false, enum: UserStatus })
+  @ApiQuery({ name: 'gender', required: false, enum: Gender })
+  @ApiQuery({ name: 'isVerified', required: false, type: Boolean })
+  @ApiQuery({ name: 'sortBy', required: false, example: 'createdAt' })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
+  @ApiResponse({ status: 200, description: 'Users list retrieved successfully.' })
   async findAll(
-    // Pagination
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    // Search
     @Query('q') search?: string,
-    // Filters
     @Query('role') role?: string,
     @Query('status') status?: string,
     @Query('gender') gender?: string,
     @Query('isVerified') isVerified?: string,
-    // Sorting
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
   ) {
@@ -65,7 +70,6 @@ export class UsersController {
       page: pageNum,
       limit: limitNum,
       search: search?.trim() || undefined,
-      // Enum-guarded filters — ignore unknown values
       role: Object.values(UserRole).includes(role as UserRole)
         ? (role as UserRole)
         : undefined,
@@ -110,9 +114,12 @@ export class UsersController {
     });
   }
 
-  // GET /users/:id
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get user by ID', description: 'Retrieves user details by ID.' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User found.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
   async findById(@Param('id') id: string) {
     const user = await this.usersService.findById(id);
     if (!user) {
@@ -127,9 +134,11 @@ export class UsersController {
     });
   }
 
-  // PATCH /users/:id
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update user profile', description: 'Updates user details.' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User updated successfully.' })
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
@@ -140,9 +149,11 @@ export class UsersController {
     });
   }
 
-  // DELETE /users/:id
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete user', description: 'Soft deletes user account.' })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully.' })
   async remove(@Param('id') id: string) {
     await this.usersService.softDeleteUser(id);
     return successResponse('User deleted successfully.');

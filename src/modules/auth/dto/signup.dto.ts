@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const signupSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -27,4 +28,25 @@ export const signupSchema = z.object({
     ),
 });
 
-export type SignupDto = z.infer<typeof signupSchema>;
+export class SignupDto {
+  @ApiProperty({ example: 'John', description: 'First name' })
+  firstName: string;
+
+  @ApiProperty({ example: 'Doe', description: 'Last name' })
+  lastName: string;
+
+  @ApiProperty({ example: 'john.doe@example.com', description: 'Unique email address' })
+  email: string;
+
+  @ApiProperty({ example: '1234567890', description: 'Phone number' })
+  phone: string;
+
+  @ApiProperty({ example: '1995-05-15', description: 'Date of birth in YYYY-MM-DD format' })
+  dateOfBirth: string;
+
+  @ApiProperty({ example: 'MALE', enum: ['MALE', 'FEMALE', 'OTHER'], description: 'Gender' })
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+
+  @ApiProperty({ example: 'Password123!', description: 'Strong user password' })
+  password: string;
+}
