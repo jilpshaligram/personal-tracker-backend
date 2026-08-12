@@ -46,7 +46,7 @@ export enum PaymentMethod {
   UPI = 'UPI',
 
   /** Digital wallet: Paytm, PhonePe, Google Pay balance, etc. */
-  WALLET = 'WALLET',
+  // WALLET = 'WALLET',
 
   /** Paper cheque — still used in B2B and rent payments */
   CHEQUE = 'CHEQUE',

@@ -7,6 +7,7 @@ import { CategoriesRepository } from '../repositories/categories.repository';
 import type { CreateCategoryDto } from '../dto/create-category.dto';
 import type { UpdateCategoryDto } from '../dto/update-category.dto';
 import { Category } from '../schemas/category.schema';
+import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 
 @Injectable()
 export class CategoriesService {
@@ -26,8 +27,11 @@ export class CategoriesService {
    * Retrieves all available categories for a user.
    * This includes both system defaults and the user's custom categories.
    */
-  async findAllForUser(userId: string): Promise<Category[]> {
-    return await this.categoriesRepository.findAllForUser(userId);
+  async findAllForUser(
+    userId: string,
+    type?: CategoryTransactionType,
+  ): Promise<Category[]> {
+    return await this.categoriesRepository.findAllForUser(userId, type);
   }
 
   /**

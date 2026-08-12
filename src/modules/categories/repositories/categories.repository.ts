@@ -8,6 +8,7 @@ import { Op } from 'sequelize';
 import { Category } from '../schemas/category.schema';
 import type { CreateCategoryDto } from '../dto/create-category.dto';
 import type { UpdateCategoryDto } from '../dto/update-category.dto';
+import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 
 @Injectable()
 export class CategoriesRepository {
@@ -90,17 +91,25 @@ export class CategoriesRepository {
    * and all system defaults (is_default = true).
    * Results are sorted by type (ASC) and name (ASC).
    */
-  async findAllForUser(userId: string): Promise<Category[]> {
+  async findAllForUser(
+    userId: string,
+    type?: CategoryTransactionType,
+  ): Promise<Category[]> {
     try {
+      const whereClause = {
+        [Op.or]: [{ created_by: userId }, { is_default: true }],
+        is_active: true,
+        ...(type ? { type } : {}),
+      };
+
       return await this.categoryModel.findAll({
-        where: {
-          [Op.or]: [{ created_by: userId }, { is_default: true }],
-          is_active: true,
-        },
-        order: [
-          ['type', 'ASC'],
-          ['name', 'ASC'],
-        ],
+        where: whereClause,
+        order: type
+          ? [['name', 'ASC']]
+          : [
+              ['type', 'ASC'],
+              ['name', 'ASC'],
+            ],
       });
     } catch {
       throw new InternalServerErrorException('Failed to retrieve categories');
