@@ -8,8 +8,10 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { CategoriesService } from '../services/categories.service';
+import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
 import { createCategorySchema } from '../dto/create-category.dto';
 import type { CreateCategoryDto } from '../dto/create-category.dto';
 import { updateCategorySchema } from '../dto/update-category.dto';
@@ -51,9 +53,15 @@ export class CategoriesController {
    * Retrieves all default + custom categories for the authenticated user.
    */
   @Get()
-  async findAll(@Req() req: Request & { user: IJwtPayload }) {
+  async findAll(
+    @Req() req: Request & { user: IJwtPayload },
+    @Query('type') type?: CategoryTransactionType,
+  ) {
     const userId = req.user.sub;
-    const categories = await this.categoriesService.findAllForUser(userId);
+    const categories = await this.categoriesService.findAllForUser(
+      userId,
+      type,
+    );
 
     return {
       success: true,
