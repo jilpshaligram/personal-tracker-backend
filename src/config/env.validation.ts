@@ -1,4 +1,3 @@
-import { plainToInstance } from 'class-transformer';
 import {
   validateSync,
   IsEnum,
@@ -52,10 +51,13 @@ class EnvironmentVariables {
   REFRESH_TOKEN_EXPIRY: string;
 }
 
-export function validate(config: Record<string, unknown>) {
-  const validatedConfig = plainToInstance(EnvironmentVariables, config, {
-    enableImplicitConversion: true,
-  });
+export function validate(
+  config: Record<string, unknown>,
+): EnvironmentVariables {
+  const validatedConfig = Object.assign(
+    new EnvironmentVariables(),
+    config as Record<string, any>,
+  ) as EnvironmentVariables;
 
   const errors: ValidationError[] = validateSync(validatedConfig, {
     skipMissingProperties: false,

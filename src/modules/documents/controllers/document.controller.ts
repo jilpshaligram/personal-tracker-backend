@@ -8,7 +8,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -28,7 +27,6 @@ import {
   updateDocumentSchema,
 } from '../dto/update-document.dto';
 import { multerDocumentOptions } from '../multer.config';
-import { AuthGuard } from 'src/common/guards/auth.guard';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from 'src/common/responses/api-response.helper';
@@ -38,7 +36,6 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('documents')
-@UseGuards(AuthGuard)
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
@@ -51,7 +48,7 @@ export class DocumentController {
     @Req() req: AuthenticatedRequest,
   ) {
     if (!file) {
-      throw new BadRequestException('PDF file is required');
+      throw new BadRequestException('File is required');
     }
     const data = await this.documentService.create(dto, file, req.user.sub);
 

@@ -21,6 +21,7 @@ export interface DocumentAttributes {
   reminderDaysBefore: number;
   fileUrl: string;
   filePublicId: string;
+  fileResourceType: 'image' | 'raw' | 'video';
 }
 
 export type DocumentCreationAttributes = Optional<DocumentAttributes, 'id'>;
@@ -87,6 +88,12 @@ export class Document extends Model<
     allowNull: false,
   })
   declare filePublicId: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
+  fileResourceType: 'image' | 'raw' | 'video';
 
   @Column({
     type: DataType.DATE,

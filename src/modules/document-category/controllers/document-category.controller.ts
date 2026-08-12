@@ -6,13 +6,11 @@ import {
   Param,
   Body,
   Patch,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { Query } from '@nestjs/common';
 import { QueryDocumentCategoryDto } from '../dto/query-document-category.dto';
-import { AuthGuard } from '../../../common/guards/auth.guard';
 import { DocumentCategoryService } from '../services/document-category.service';
 import {
   CreateDocumentCategoryDto,
@@ -25,7 +23,6 @@ import {
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 
-@UseGuards(AuthGuard)
 @Controller('document-category')
 export class DocumentCategoryController {
   constructor(
