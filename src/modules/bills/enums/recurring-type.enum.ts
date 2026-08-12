@@ -1,8 +1,0 @@
-export enum RecurringType {
-  DAILY = 'DAILY',
-  WEEKLY = 'WEEKLY',
-  MONTHLY = 'MONTHLY',
-  QUARTERLY = 'QUARTERLY',
-  HALF_YEARLY = 'HALF_YEARLY',
-  YEARLY = 'YEARLY',
-}
