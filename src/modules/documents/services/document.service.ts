@@ -14,6 +14,23 @@ import { QueryDocumentDto } from '../dto/query-document.dto';
 import { DOCUMENT_QUERY_FIELDS } from '../constants/document-query-fields';
 import { QueryHelper } from 'src/common/helpers/query.helper';
 
+type DocumentResponse = {
+  id: string;
+  userId: string;
+  categoryId: string;
+  title: string;
+  expiryDate: Date | null;
+  reminderDaysBefore: number;
+  fileUrl: string;
+  filePublicId: string;
+  fileResourceType: 'image' | 'raw' | 'video';
+  category?: DocumentCategory;
+  deletedAt?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  viewUrl: string;
+};
+
 @Injectable()
 export class DocumentService {
   constructor(
@@ -36,6 +53,8 @@ export class DocumentService {
     userId: string | number,
   ): Promise<Document> {
     const currentUserId = this.getUserId(userId);
+
+    // Check document category exists
     const category = await this.documentCategoryModel.findByPk(dto.categoryId);
 
     if (!category) {
@@ -44,8 +63,15 @@ export class DocumentService {
       );
     }
 
-    const uploadResult = await this.cloudinaryService.uploadPdf(file);
+    // Check file exists
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
 
+    // Upload file to Cloudinary
+    const uploadResult = await this.cloudinaryService.uploadFile(file);
+
+    // Create document
     return this.documentModel.create({
       userId: currentUserId,
       categoryId: dto.categoryId,
@@ -54,14 +80,44 @@ export class DocumentService {
       reminderDaysBefore: dto.reminderDaysBefore,
       fileUrl: uploadResult.secure_url,
       filePublicId: uploadResult.public_id,
+      fileResourceType: file.mimetype.startsWith('image/')
+        ? 'image'
+        : file.mimetype.startsWith('video/')
+          ? 'video'
+          : 'raw',
     });
+  }
+  private async findDocument(
+    id: string,
+    userId: string | number,
+  ): Promise<Document> {
+    const currentUserId = this.getUserId(userId);
+
+    const document = await this.documentModel.findOne({
+      where: {
+        id,
+        userId: currentUserId,
+      },
+      include: [
+        {
+          model: DocumentCategory,
+          attributes: ['id', 'name'],
+        },
+      ],
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    return document;
   }
 
   async findAll(
     userId: string | number,
     query: QueryDocumentDto,
   ): Promise<{
-    documents: Document[];
+    documents: DocumentResponse[];
     pagination: {
       total: number;
       page: number;
@@ -75,6 +131,7 @@ export class DocumentService {
 
     const queryResult = QueryHelper.build(query, DOCUMENT_QUERY_FIELDS);
 
+    // Always filter by current user
     queryResult.where = {
       ...queryResult.where,
       userId: currentUserId,
@@ -93,36 +150,40 @@ export class DocumentService {
       limit: queryResult.limit,
     });
 
+    const totalPages = Math.ceil(count / queryResult.limit);
+    const documentsWithViewUrl: DocumentResponse[] = rows.map((document) => ({
+      ...document.toJSON(),
+      viewUrl: this.cloudinaryService.getViewUrl(
+        document.filePublicId,
+        document.fileResourceType,
+      ),
+    }));
+
     return {
-      documents: rows,
+      documents: documentsWithViewUrl,
       pagination: {
         total: count,
         page: queryResult.page,
         limit: queryResult.limit,
-        totalPages: Math.ceil(count / queryResult.limit),
-        hasNext: queryResult.page < Math.ceil(count / queryResult.limit),
+        totalPages,
+        hasNext: queryResult.page < totalPages,
         hasPrevious: queryResult.page > 1,
       },
     };
   }
 
-  async findOne(id: string, userId: string | number): Promise<Document> {
-    const currentUserId = this.getUserId(userId);
-    const document = await this.documentModel.findOne({
-      where: { id, userId: currentUserId },
-      include: [
-        {
-          model: DocumentCategory,
-          attributes: ['id', 'name'],
-        },
-      ],
-    });
+  async findOne(id: string, userId: string | number) {
+    const document = await this.findDocument(id, userId);
 
-    if (!document) {
-      throw new NotFoundException(`Document  not found`);
-    }
+    const viewUrl = this.cloudinaryService.getViewUrl(
+      document.filePublicId,
+      document.fileResourceType,
+    );
 
-    return document;
+    return {
+      ...document.toJSON(),
+      viewUrl,
+    };
   }
 
   async update(
@@ -132,14 +193,20 @@ export class DocumentService {
     userId: string | number,
   ): Promise<Document> {
     const currentUserId = this.getUserId(userId);
-    const document = await this.findOne(id, currentUserId);
 
+    // Find document and verify ownership
+    const document = await this.findDocument(id, currentUserId);
+
+    // If category is changing, verify new category exists
     if (dto.categoryId !== undefined) {
       const category = await this.documentCategoryModel.findByPk(
         dto.categoryId,
       );
+
       if (!category) {
-        throw new BadRequestException(`Document category  does not exist`);
+        throw new BadRequestException(
+          `Document category with id ${dto.categoryId} does not exist`,
+        );
       }
     }
 
@@ -150,27 +217,49 @@ export class DocumentService {
       reminderDaysBefore: number;
       fileUrl: string;
       filePublicId: string;
+      fileResourceType: 'image' | 'raw' | 'video';
     }> = {
-      ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.categoryId !== undefined && {
+        categoryId: dto.categoryId,
+      }),
+
+      ...(dto.title !== undefined && {
+        title: dto.title,
+      }),
+
       ...(dto.expiryDate !== undefined && {
         expiryDate: new Date(dto.expiryDate),
       }),
+
       ...(dto.reminderDaysBefore !== undefined && {
         reminderDaysBefore: dto.reminderDaysBefore,
       }),
     };
 
+    // If user uploads a new file
     if (file) {
       // Delete old file from Cloudinary
-      await this.cloudinaryService.deletePdf(document.filePublicId);
+      if (document.filePublicId) {
+        await this.cloudinaryService.deleteFile(
+          document.filePublicId,
+          document.fileResourceType,
+        );
+      }
 
       // Upload new file
-      const uploadResult = await this.cloudinaryService.uploadPdf(file);
+      const uploadResult = await this.cloudinaryService.uploadFile(file);
+
+      // Save new Cloudinary details
       updateData.fileUrl = uploadResult.secure_url;
       updateData.filePublicId = uploadResult.public_id;
+      updateData.fileResourceType = file.mimetype.startsWith('image/')
+        ? 'image'
+        : file.mimetype.startsWith('video/')
+          ? 'video'
+          : 'raw';
     }
 
+    // Update database
     await document.update(updateData);
 
     return document;
@@ -181,13 +270,23 @@ export class DocumentService {
     userId: string | number,
   ): Promise<{ message: string }> {
     const currentUserId = this.getUserId(userId);
-    const document = await this.findOne(id, currentUserId);
+
+    // Find document and verify ownership
+    const document = await this.findDocument(id, currentUserId);
 
     // Delete file from Cloudinary
-    await this.cloudinaryService.deletePdf(document.filePublicId);
+    if (document.filePublicId) {
+      await this.cloudinaryService.deleteFile(
+        document.filePublicId,
+        document.fileResourceType,
+      );
+    }
 
+    // Delete document from database
     await document.destroy();
 
-    return { message: 'Document deleted successfully' };
+    return {
+      message: 'Document deleted successfully',
+    };
   }
 }

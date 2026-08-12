@@ -36,8 +36,6 @@ export class SavingTransactionController {
     private readonly savingTransactionService: SavingTransactionService,
   ) {}
 
-  // ─── POST /saving-goals/:goalId/transactions ─────────────────────────────
-
   @Post('saving-goals/:goalId/transactions')
   @HttpCode(HttpStatus.CREATED)
   async create(
@@ -57,8 +55,6 @@ export class SavingTransactionController {
     });
   }
 
-  // ─── GET /saving-goals/:goalId/transactions ───────────────────────────────
-
   @Get('saving-goals/:goalId/transactions')
   @HttpCode(HttpStatus.OK)
   async findAllByGoal(
@@ -67,10 +63,7 @@ export class SavingTransactionController {
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.sub;
-    // const transactions = await this.savingTransactionService.findAllByGoal(
-    //   goalId,
-    //   userId,
-    // );
+
     const result = await this.savingTransactionService.findAllByGoal(
       goalId,
       userId,
@@ -81,8 +74,6 @@ export class SavingTransactionController {
     });
   }
 
-  // ─── GET /transactions/:id ───────────────────────────────────────────────
-
   @Get('transactions/:id')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
@@ -92,8 +83,6 @@ export class SavingTransactionController {
       transaction,
     });
   }
-
-  // ─── PATCH /transactions/:id ──────────────────────────────────────────────
 
   @Patch('transactions/:id')
   @HttpCode(HttpStatus.OK)
@@ -114,8 +103,6 @@ export class SavingTransactionController {
       { transaction },
     );
   }
-
-  // ─── DELETE /transactions/:id ────────────────────────────────────────────
 
   @Delete('transactions/:id')
   @HttpCode(HttpStatus.OK)
