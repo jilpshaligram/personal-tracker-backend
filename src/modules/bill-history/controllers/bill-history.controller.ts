@@ -28,9 +28,15 @@ export class BillHistoryController {
   ) {}
 
   @Get(':id/history')
-  @ApiOperation({ summary: 'Get payment history for a bill', description: 'Retrieves payment history logs for a specific bill.' })
+  @ApiOperation({
+    summary: 'Get payment history for a bill',
+    description: 'Retrieves payment history logs for a specific bill.',
+  })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
-  @ApiResponse({ status: 200, description: 'Bill history fetched successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bill history fetched successfully.',
+  })
   async findByBill(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     await this.billService.findOne(req.user.sub, id);
 

@@ -19,8 +19,14 @@ import {
 } from '@nestjs/swagger';
 import { CategoriesService } from '../services/categories.service';
 import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
-import { createCategorySchema, CreateCategoryDto } from '../dto/create-category.dto';
-import { updateCategorySchema, UpdateCategoryDto } from '../dto/update-category.dto';
+import {
+  createCategorySchema,
+  CreateCategoryDto,
+} from '../dto/create-category.dto';
+import {
+  updateCategorySchema,
+  UpdateCategoryDto,
+} from '../dto/update-category.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { Request } from 'express';
@@ -31,10 +37,13 @@ import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 @Controller('categories')
 @UseGuards(AuthGuard)
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) { }
+  constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create custom category', description: 'Creates a new user-defined custom category.' })
+  @ApiOperation({
+    summary: 'Create custom category',
+    description: 'Creates a new user-defined custom category.',
+  })
   @ApiResponse({ status: 201, description: 'Category created successfully.' })
   async create(
     @Req() req: Request & { user: IJwtPayload },
@@ -55,8 +64,14 @@ export class CategoriesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all categories', description: 'Retrieves all system default and custom user categories.' })
-  @ApiResponse({ status: 200, description: 'Categories retrieved successfully.' })
+  @ApiOperation({
+    summary: 'Get all categories',
+    description: 'Retrieves all system default and custom user categories.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories retrieved successfully.',
+  })
   async findAll(
     @Req() req: Request & { user: IJwtPayload },
     @Query('type') type?: CategoryTransactionType,
@@ -75,7 +90,10 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get category by ID', description: 'Retrieves a single category by ID.' })
+  @ApiOperation({
+    summary: 'Get category by ID',
+    description: 'Retrieves a single category by ID.',
+  })
   @ApiParam({ name: 'id', description: 'Category UUID' })
   @ApiResponse({ status: 200, description: 'Category retrieved successfully.' })
   async findOne(
@@ -93,7 +111,11 @@ export class CategoriesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update custom category', description: 'Updates custom category details (System defaults cannot be edited).' })
+  @ApiOperation({
+    summary: 'Update custom category',
+    description:
+      'Updates custom category details (System defaults cannot be edited).',
+  })
   @ApiParam({ name: 'id', description: 'Category UUID' })
   @ApiResponse({ status: 200, description: 'Category updated successfully.' })
   async update(
@@ -117,7 +139,11 @@ export class CategoriesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete custom category', description: 'Deletes a custom category (System defaults cannot be deleted).' })
+  @ApiOperation({
+    summary: 'Delete custom category',
+    description:
+      'Deletes a custom category (System defaults cannot be deleted).',
+  })
   @ApiParam({ name: 'id', description: 'Category UUID' })
   @ApiResponse({ status: 200, description: 'Category deleted successfully.' })
   async remove(

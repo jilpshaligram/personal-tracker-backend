@@ -19,6 +19,12 @@ import { BillStatus } from '../enums/bill-status.enum';
 import { RecurringType } from '../enums/recurring-type.enum';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillHistoryStatus } from '../../bill-history/interfaces/bill-history.interface';
+import { WalletRepository } from '../../wallets/repositories/wallet.repository';
+import { UpdateWalletDto as WalletUpdateDto } from '../../wallets/dto/update-wallet.dto';
+import { TransactionRepository } from '../../transactions/repositories/transaction.repository';
+import { TransactionType } from '../../transactions/enums/transaction-type.enum';
+import { PaymentMethod as TxPaymentMethod } from '../../transactions/enums/payment-method.enum';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class BillService {
@@ -26,7 +32,10 @@ export class BillService {
     @InjectModel(Bill)
     private readonly billModel: typeof Bill,
     private readonly billHistoryService: BillHistoryService,
+    private readonly walletRepository: WalletRepository,
+    private readonly transactionRepository: TransactionRepository,
     private readonly sequelize: Sequelize,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create(userId: string, dto: CreateBillDto): Promise<BillResponseDto> {
@@ -53,7 +62,12 @@ export class BillService {
     filter: BillFilterDto,
   ): Promise<{
     data: BillResponseDto[];
-    pagination: { page: number; limit: number; total: number; totalPages: number };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   }> {
     const {
       page,
@@ -211,19 +225,23 @@ export class BillService {
 
     this.validateBillOwnership(bill, userId);
 
+    if (bill.attachment?.publicId) {
+      await this.cloudinaryService.deleteFile(bill.attachment.publicId, 'auto');
+    }
+
     await bill.destroy();
   }
 
-  async pay(userId: string, id: string, dto: PayBillDto): Promise<void> {
-    const transaction = await this.sequelize.transaction({
+  async pay(userId: string, id: string, dto: PayBillDto): Promise<any> {
+    const dbTransaction = await this.sequelize.transaction({
       isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
     });
 
     try {
       const bill = await this.billModel.findOne({
         where: { id, deletedAt: null },
-        lock: transaction.LOCK.UPDATE,
-        transaction,
+        lock: dbTransaction.LOCK.UPDATE,
+        transaction: dbTransaction,
       });
 
       if (!bill) {
@@ -244,30 +262,100 @@ export class BillService {
         });
       }
 
+      // 1. Fetch user's wallet with row lock for update
+      const wallet = await this.walletRepository.findByUserIdForUpdate(
+        userId,
+        dbTransaction,
+      );
+
+      if (!wallet) {
+        throw new NotFoundException({
+          success: false,
+          message: 'Wallet not found for this user.',
+          errors: [],
+        });
+      }
+
+      // 2. Validate wallet balance
+      const currentBalance = Number(wallet.currentBalance);
+      const blockedAmount = Number(wallet.blockedAmount);
+      const availableBalance = currentBalance - blockedAmount;
+
+      if (availableBalance < dto.amountPaid) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Insufficient available balance in wallet to pay this bill',
+          errors: [],
+        });
+      }
+
+      // 3. Deduct paid amount from wallet current balance
+      const newCurrentBalance = currentBalance - dto.amountPaid;
+      await this.walletRepository.update(
+        wallet.id,
+        { currentBalance: newCurrentBalance } as WalletUpdateDto,
+        dbTransaction,
+      );
+
+      // 4. Create an EXPENSE transaction
+      const noteText =
+        dto.notes || dto.remarks || `Bill payment: ${bill.title}`;
+      const createdTx = await this.transactionRepository.create(
+        userId,
+        {
+          wallet_id: wallet.id,
+          category_id: bill.categoryId || undefined,
+          type: TransactionType.EXPENSE,
+          amount: dto.amountPaid,
+          payment_method: dto.paymentMethod as unknown as TxPaymentMethod,
+          note: noteText,
+          transaction_date: new Date().toISOString().split('T')[0],
+        },
+        dbTransaction,
+      );
+
+      // 5. Update bill status to PAID
       await bill.update(
         {
           status: BillStatus.PAID,
           paidDate: new Date().toISOString().split('T')[0],
           paymentMethod: dto.paymentMethod,
         },
-        { transaction },
+        { transaction: dbTransaction },
       );
 
-      await this.billHistoryService.createHistory({
-        billId: bill.id,
-        amountPaid: dto.amountPaid,
-        paymentMethod: dto.paymentMethod,
-        status: BillHistoryStatus.PAID,
-        remarks: dto.remarks,
-      });
+      // 6. Create bill history entry
+      const history = await this.billHistoryService.createHistory(
+        {
+          billId: bill.id,
+          amountPaid: dto.amountPaid,
+          paymentMethod: dto.paymentMethod,
+          status: BillHistoryStatus.PAID,
+          remarks: noteText,
+        },
+        dbTransaction,
+      );
 
+      // 7. If recurring, generate next recurring bill
       if (bill.isRecurring) {
-        await this.generateNextRecurringBill(bill, transaction);
+        await this.generateNextRecurringBill(bill, dbTransaction);
       }
 
-      await transaction.commit();
+      await dbTransaction.commit();
+
+      return {
+        id: history.id,
+        billId: bill.id,
+        transactionId: createdTx.id,
+        paymentDate: history.paymentDate,
+        amountPaid: Number(history.amountPaid),
+        paymentMethod: history.paymentMethod,
+        status: history.status,
+        createdAt: history.createdAt,
+        updatedAt: history.createdAt,
+      };
     } catch (error) {
-      await transaction.rollback();
+      await dbTransaction.rollback();
       throw error;
     }
   }

@@ -32,14 +32,18 @@ interface AuthenticatedRequest extends Request {
 }
 
 @ApiTags('Budgets')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('budgets')
+@UseGuards(AuthGuard)
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create budget', description: 'Creates a new budget target.' })
+  @ApiOperation({
+    summary: 'Create budget',
+    description: 'Creates a new budget target.',
+  })
   @ApiResponse({ status: 201, description: 'Budget created successfully.' })
   async create(
     @Body(new ZodValidationPipe(createBudgetSchema))
@@ -53,7 +57,10 @@ export class BudgetController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all budgets', description: 'Retrieves all budgets for the authenticated user.' })
+  @ApiOperation({
+    summary: 'Get all budgets',
+    description: 'Retrieves all budgets for the authenticated user.',
+  })
   @ApiResponse({ status: 200, description: 'Budgets fetched successfully.' })
   async findAll(@Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
@@ -63,7 +70,10 @@ export class BudgetController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get budget by ID', description: 'Retrieves details for a specific budget.' })
+  @ApiOperation({
+    summary: 'Get budget by ID',
+    description: 'Retrieves details for a specific budget.',
+  })
   @ApiParam({ name: 'id', description: 'Budget UUID' })
   @ApiResponse({ status: 200, description: 'Budget fetched successfully.' })
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
@@ -74,7 +84,10 @@ export class BudgetController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update budget', description: 'Updates details of an existing budget.' })
+  @ApiOperation({
+    summary: 'Update budget',
+    description: 'Updates details of an existing budget.',
+  })
   @ApiParam({ name: 'id', description: 'Budget UUID' })
   @ApiResponse({ status: 200, description: 'Budget updated successfully.' })
   async update(

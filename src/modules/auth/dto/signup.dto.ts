@@ -35,16 +35,26 @@ export class SignupDto {
   @ApiProperty({ example: 'Doe', description: 'Last name' })
   lastName: string;
 
-  @ApiProperty({ example: 'john.doe@example.com', description: 'Unique email address' })
+  @ApiProperty({
+    example: 'john.doe@example.com',
+    description: 'Unique email address',
+  })
   email: string;
 
   @ApiProperty({ example: '1234567890', description: 'Phone number' })
   phone: string;
 
-  @ApiProperty({ example: '1995-05-15', description: 'Date of birth in YYYY-MM-DD format' })
+  @ApiProperty({
+    example: '1995-05-15',
+    description: 'Date of birth in YYYY-MM-DD format',
+  })
   dateOfBirth: string;
 
-  @ApiProperty({ example: 'MALE', enum: ['MALE', 'FEMALE', 'OTHER'], description: 'Gender' })
+  @ApiProperty({
+    example: 'MALE',
+    enum: ['MALE', 'FEMALE', 'OTHER'],
+    description: 'Gender',
+  })
   gender: 'MALE' | 'FEMALE' | 'OTHER';
 
   @ApiProperty({ example: 'Password123!', description: 'Strong user password' })

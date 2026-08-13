@@ -4,11 +4,15 @@ import { Op, WhereOptions, OrderItem } from 'sequelize';
 import { User } from '../schemas/user.schema';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
-import { Gender } from '../enums/gender.enum';
 import { IUser } from '../interfaces/user.interface';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import type {
+  FindAllOptions,
+  CreateUserData,
+  SortOrder,
+} from '../interfaces/user-query.interface';
 
-export type SortOrder = 'ASC' | 'DESC';
+export type { FindAllOptions, CreateUserData, SortOrder };
 
 const ALLOWED_SORT_COLUMNS: Record<string, string> = {
   firstName: 'firstName',
@@ -18,28 +22,6 @@ const ALLOWED_SORT_COLUMNS: Record<string, string> = {
   updatedAt: 'updatedAt',
   lastLoginAt: 'lastLoginAt',
 };
-
-export interface FindAllOptions {
-  page?: number;
-  limit?: number;
-  search?: string; // searches firstName, lastName, email, phone
-  role?: UserRole;
-  status?: UserStatus;
-  gender?: Gender;
-  isVerified?: boolean;
-  sortBy?: string; // column name (whitelist-guarded)
-  sortOrder?: SortOrder;
-}
-
-export interface CreateUserData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: Gender;
-  password: string;
-}
 
 @Injectable()
 export class UsersService {

@@ -8,22 +8,15 @@ import { Readable } from 'stream';
 
 @Injectable()
 export class CloudinaryService {
-  uploadFile(file: Express.Multer.File): Promise<UploadApiResponse> {
+  uploadFile(
+    file: Express.Multer.File,
+    folder: string = 'documents',
+  ): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
-      let resourceType: 'image' | 'raw' | 'video' = 'raw';
-
-      if (file.mimetype === 'application/pdf') {
-        resourceType = 'image';
-      } else if (file.mimetype.startsWith('image/')) {
-        resourceType = 'image';
-      } else if (file.mimetype.startsWith('video/')) {
-        resourceType = 'video';
-      }
-
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: 'documents',
-          resource_type: resourceType,
+          folder,
+          resource_type: 'auto',
         },
         (error: UploadApiErrorResponse, result: UploadApiResponse) => {
           if (error) {
@@ -44,7 +37,7 @@ export class CloudinaryService {
 
   getViewUrl(
     publicId: string,
-    resourceType: 'image' | 'raw' | 'video',
+    resourceType: 'image' | 'raw' | 'video' = 'image',
   ): string {
     if (resourceType === 'raw') {
       return cloudinary.url(publicId, {
@@ -66,9 +59,17 @@ export class CloudinaryService {
 
   async deleteFile(
     publicId: string,
-    resourceType: 'image' | 'raw' | 'video' = 'raw',
+    resourceType: 'image' | 'raw' | 'video' | 'auto' = 'image',
   ): Promise<void> {
     try {
+      if (resourceType === 'auto') {
+        await Promise.allSettled([
+          cloudinary.uploader.destroy(publicId, { resource_type: 'image' }),
+          cloudinary.uploader.destroy(publicId, { resource_type: 'raw' }),
+          cloudinary.uploader.destroy(publicId, { resource_type: 'video' }),
+        ]);
+        return;
+      }
       await cloudinary.uploader.destroy(publicId, {
         resource_type: resourceType,
       });

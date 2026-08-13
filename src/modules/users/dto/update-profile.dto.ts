@@ -1,15 +1,14 @@
 import { z } from 'zod';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export const updateUserSchema = z.object({
+/**
+ * DTO for the PATCH /users/me endpoint.
+ * Intentionally excludes email and phone — those are sensitive fields
+ * that require a separate verification flow to change.
+ */
+export const updateProfileSchema = z.object({
   firstName: z.string().min(1, 'First name is required').optional(),
   lastName: z.string().min(1, 'Last name is required').optional(),
-  phone: z
-    .string()
-    .min(10, 'Phone must be at least 10 digits')
-    .max(15, 'Phone must be at most 15 digits')
-    .regex(/^\d+$/, 'Phone must contain digits only')
-    .optional(),
   dateOfBirth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
@@ -23,15 +22,14 @@ export const updateUserSchema = z.object({
   notificationEnabled: z.boolean().optional(),
 });
 
-export class UpdateUserDto {
+export type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
+
+export class UpdateProfileDtoClass {
   @ApiPropertyOptional({ example: 'John', description: 'First name' })
   firstName?: string;
 
   @ApiPropertyOptional({ example: 'Doe', description: 'Last name' })
   lastName?: string;
-
-  @ApiPropertyOptional({ example: '1234567890', description: 'Phone number' })
-  phone?: string;
 
   @ApiPropertyOptional({
     example: '1995-05-15',
