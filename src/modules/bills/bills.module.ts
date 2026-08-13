@@ -8,11 +8,19 @@ import { BillReminderJob } from '../../jobs/bill-reminder.job';
 import { BillOverdueJob } from '../../jobs/bill-overdue.job';
 import { SecurityModule } from '../../infrastructure/security/security.module';
 
+import { WalletsModule } from '../wallets/wallets.module';
+import { TransactionModule } from '../transactions/transaction.module';
+
+import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
+
 @Module({
   imports: [
     SequelizeModule.forFeature([Bill]),
     forwardRef(() => BillHistoryModule),
+    WalletsModule,
+    TransactionModule,
     SecurityModule,
+    CloudinaryModule,
   ],
   controllers: [BillController],
   providers: [BillService, BillReminderJob, BillOverdueJob],

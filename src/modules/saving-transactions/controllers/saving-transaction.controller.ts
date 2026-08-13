@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -40,18 +41,27 @@ interface AuthenticatedRequest extends Request {
 }
 
 @ApiTags('Saving Transactions')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller()
+@UseGuards(AuthGuard)
 export class SavingTransactionController {
   constructor(
     private readonly savingTransactionService: SavingTransactionService,
-  ) { }
+  ) {}
 
   @Post('saving-goals/:goalId/transactions')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Record Saving Goal Transaction', description: 'Records a contribution or withdrawal for a specific saving goal.' })
+  @ApiOperation({
+    summary: 'Record Saving Goal Transaction',
+    description:
+      'Records a contribution or withdrawal for a specific saving goal.',
+  })
   @ApiParam({ name: 'goalId', description: 'Saving Goal UUID' })
-  @ApiResponse({ status: 201, description: 'Transaction recorded successfully.' })
+  @ApiBody({ type: CreateSavingTransactionDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Transaction recorded successfully.',
+  })
   async create(
     @Param('goalId') goalId: string,
     @Body(new ZodValidationPipe(createSavingTransactionSchema))
@@ -71,15 +81,22 @@ export class SavingTransactionController {
 
   @Get('saving-goals/:goalId/transactions')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get Saving Goal Transactions', description: 'Retrieves all transactions for a specific saving goal.' })
+  @ApiOperation({
+    summary: 'Get Saving Goal Transactions',
+    description: 'Retrieves all transactions for a specific saving goal.',
+  })
   @ApiParam({ name: 'goalId', description: 'Saving Goal UUID' })
-  @ApiResponse({ status: 200, description: 'Transactions fetched successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions fetched successfully.',
+  })
   async findAllByGoal(
     @Param('goalId') goalId: string,
     @Query() query: QuerySavingTransactionDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.sub;
+
     const result = await this.savingTransactionService.findAllByGoal(
       goalId,
       userId,
@@ -92,9 +109,15 @@ export class SavingTransactionController {
 
   @Get('transactions/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get Saving Transaction by ID', description: 'Retrieves a single saving transaction by ID.' })
+  @ApiOperation({
+    summary: 'Get Saving Transaction by ID',
+    description: 'Retrieves a single saving transaction by ID.',
+  })
   @ApiParam({ name: 'id', description: 'Transaction UUID' })
-  @ApiResponse({ status: 200, description: 'Transaction fetched successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction fetched successfully.',
+  })
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const transaction = await this.savingTransactionService.findOne(id, userId);
@@ -105,9 +128,15 @@ export class SavingTransactionController {
 
   @Patch('transactions/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update Saving Transaction', description: 'Updates a saving transaction and recalculates goal totals.' })
+  @ApiOperation({
+    summary: 'Update Saving Transaction',
+    description: 'Updates a saving transaction and recalculates goal totals.',
+  })
   @ApiParam({ name: 'id', description: 'Transaction UUID' })
-  @ApiResponse({ status: 200, description: 'Transaction updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction updated successfully.',
+  })
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateSavingTransactionSchema))
@@ -128,9 +157,15 @@ export class SavingTransactionController {
 
   @Delete('transactions/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete Saving Transaction', description: 'Deletes a saving transaction and recalculates goal totals.' })
+  @ApiOperation({
+    summary: 'Delete Saving Transaction',
+    description: 'Deletes a saving transaction and recalculates goal totals.',
+  })
   @ApiParam({ name: 'id', description: 'Transaction UUID' })
-  @ApiResponse({ status: 200, description: 'Transaction deleted successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction deleted successfully.',
+  })
   async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     await this.savingTransactionService.remove(id, userId);

@@ -64,22 +64,36 @@ export class SavingGoalDepositDto {
   @ApiProperty({ example: 100, description: 'Amount' })
   amount: number;
 
-  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Wallet UUID' })
+  @ApiProperty({
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    description: 'Wallet UUID',
+  })
   wallet_id: string;
 
-  @ApiPropertyOptional({ enum: PaymentMethod, example: PaymentMethod.BANK_TRANSFER, description: 'Payment method' })
+  @ApiPropertyOptional({
+    enum: PaymentMethod,
+    example: PaymentMethod.BANK_TRANSFER,
+    description: 'Payment method',
+  })
   payment_method?: PaymentMethod;
 
-  @ApiPropertyOptional({ example: 'Goal deposit', description: 'Optional note' })
+  @ApiPropertyOptional({
+    example: 'Goal deposit',
+    description: 'Optional note',
+  })
   note?: string;
 
-  @ApiPropertyOptional({ example: '2026-08-12', description: 'Transaction date (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-08-12',
+    description: 'Transaction date (YYYY-MM-DD)',
+  })
   transaction_date?: string;
 }
 
 @ApiTags('Saving Goals')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('saving-goals')
+@UseGuards(AuthGuard)
 export class SavingGoalController {
   constructor(
     private readonly savingGoalService: SavingGoalService,
@@ -89,8 +103,14 @@ export class SavingGoalController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create Saving Goal', description: 'Creates a new saving target goal.' })
-  @ApiResponse({ status: 201, description: 'Saving goal created successfully.' })
+  @ApiOperation({
+    summary: 'Create Saving Goal',
+    description: 'Creates a new saving target goal.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Saving goal created successfully.',
+  })
   async create(
     @Body(new ZodValidationPipe(createSavingGoalSchema))
     dto: CreateSavingGoalDto,
@@ -103,8 +123,14 @@ export class SavingGoalController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get All Saving Goals', description: 'Retrieves all saving goals for the user.' })
-  @ApiResponse({ status: 200, description: 'Saving goals retrieved successfully.' })
+  @ApiOperation({
+    summary: 'Get All Saving Goals',
+    description: 'Retrieves all saving goals for the user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Saving goals retrieved successfully.',
+  })
   async findAll(@Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const goals = await this.savingGoalService.findAll(userId);
@@ -113,9 +139,15 @@ export class SavingGoalController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get Saving Goal by ID', description: 'Retrieves details for a specific saving goal.' })
+  @ApiOperation({
+    summary: 'Get Saving Goal by ID',
+    description: 'Retrieves details for a specific saving goal.',
+  })
   @ApiParam({ name: 'id', description: 'Saving Goal UUID' })
-  @ApiResponse({ status: 200, description: 'Saving goal retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Saving goal retrieved successfully.',
+  })
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const goal = await this.savingGoalService.findOne(id, userId);
@@ -124,9 +156,15 @@ export class SavingGoalController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update Saving Goal', description: 'Updates details of a saving goal.' })
+  @ApiOperation({
+    summary: 'Update Saving Goal',
+    description: 'Updates details of a saving goal.',
+  })
   @ApiParam({ name: 'id', description: 'Saving Goal UUID' })
-  @ApiResponse({ status: 200, description: 'Saving goal updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Saving goal updated successfully.',
+  })
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateSavingGoalSchema))
@@ -140,9 +178,15 @@ export class SavingGoalController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete Saving Goal', description: 'Deletes a saving goal.' })
+  @ApiOperation({
+    summary: 'Delete Saving Goal',
+    description: 'Deletes a saving goal.',
+  })
   @ApiParam({ name: 'id', description: 'Saving Goal UUID' })
-  @ApiResponse({ status: 200, description: 'Saving goal deleted successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Saving goal deleted successfully.',
+  })
   async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     await this.savingGoalService.remove(id, userId);
@@ -151,7 +195,10 @@ export class SavingGoalController {
 
   @Post(':id/deposit')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Deposit into Saving Goal', description: 'Transfers funds from wallet into saving goal.' })
+  @ApiOperation({
+    summary: 'Deposit into Saving Goal',
+    description: 'Transfers funds from wallet into saving goal.',
+  })
   @ApiParam({ name: 'id', description: 'Saving Goal UUID' })
   @ApiResponse({ status: 201, description: 'Deposit successful.' })
   async deposit(
@@ -174,7 +221,10 @@ export class SavingGoalController {
 
   @Post(':id/withdraw')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Withdraw from Saving Goal', description: 'Transfers funds from saving goal back to wallet.' })
+  @ApiOperation({
+    summary: 'Withdraw from Saving Goal',
+    description: 'Transfers funds from saving goal back to wallet.',
+  })
   @ApiParam({ name: 'id', description: 'Saving Goal UUID' })
   @ApiResponse({ status: 201, description: 'Withdrawal successful.' })
   async withdraw(

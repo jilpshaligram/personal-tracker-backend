@@ -27,21 +27,25 @@ import type { Request } from 'express';
 import { Query } from '@nestjs/common';
 import { QueryDocumentDto } from '../dto/query-document.dto';
 import { DocumentService } from '../services/document.service';
-import {
-  CreateDocumentDto,
-  createDocumentSchema,
-} from '../dto/create-document.dto';
-import {
-  UpdateDocumentDto,
-  updateDocumentSchema,
-} from '../dto/update-document.dto';
+import { createDocumentSchema } from '../dto/create-document.dto';
+import { updateDocumentSchema } from '../dto/update-document.dto';
 import { multerDocumentOptions } from '../multer.config';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
-import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
-import { successResponse } from 'src/common/responses/api-response.helper';
+import { successResponse } from '../../../common/responses/api-response.helper';
 
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;
+}
+
+function sanitizeDocumentBody(
+  rawBody: Record<string, unknown>,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rawBody || {})) {
+    const cleanKey = key.trim();
+    payload[cleanKey] = value;
+  }
+  return payload;
 }
 
 @ApiTags('Documents')
@@ -52,38 +56,82 @@ export class DocumentController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Upload document', description: 'Uploads a PDF document with metadata.' })
+  @ApiOperation({
+    summary: 'Upload document',
+    description: 'Uploads a document with metadata.',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['file', 'categoryId', 'title', 'expiryDate', 'reminderDaysBefore'],
+      required: ['file', 'categoryId', 'title'],
       properties: {
-        file: { type: 'string', format: 'binary', description: 'PDF Document File' },
-        categoryId: { type: 'string', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Category UUID' },
-        title: { type: 'string', example: 'Passport Copy', description: 'Document Title' },
-        expiryDate: { type: 'string', example: '2028-12-31', description: 'Expiry Date (YYYY-MM-DD)' },
-        reminderDaysBefore: { type: 'number', example: 30, description: 'Reminder Days Before Expiry' },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Document File',
+        },
+        categoryId: {
+          type: 'string',
+          example: 'd353420f-304b-4b0c-b05c-bce48803c377',
+          description: 'Category UUID',
+        },
+        title: {
+          type: 'string',
+          example: 'Passport Copy',
+          description: 'Document Title',
+        },
+        expiryDate: {
+          type: 'string',
+          example: '2028-12-31',
+          description: 'Optional Expiry Date (YYYY-MM-DD)',
+        },
+        reminderDaysBefore: {
+          type: 'number',
+          example: 30,
+          description: 'Optional Reminder Days Before Expiry',
+        },
       },
     },
   })
   @ApiResponse({ status: 201, description: 'Document created successfully.' })
   @UseInterceptors(FileInterceptor('file', multerDocumentOptions))
   async create(
-    @UploadedFile() file: Express.Multer.File,
-    @Body(new ZodValidationPipe(createDocumentSchema)) dto: CreateDocumentDto,
     @Req() req: AuthenticatedRequest,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const data = await this.documentService.create(dto, file, req.user.sub);
+    const rawBody = (req.body as Record<string, unknown>) || {};
+    const payload = sanitizeDocumentBody(rawBody);
+
+    const parsed = createDocumentSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const data = await this.documentService.create(
+      parsed.data,
+      file,
+      req.user.sub,
+    );
 
     return successResponse('Document created successfully.', data);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all documents', description: 'Retrieves user documents with optional filtering.' })
+  @ApiOperation({
+    summary: 'Get all documents',
+    description: 'Retrieves user documents with optional filtering.',
+  })
   @ApiResponse({ status: 200, description: 'Documents fetched successfully.' })
   async findAll(
     @Req() req: AuthenticatedRequest,
@@ -95,7 +143,10 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get document by ID', description: 'Retrieves document details by ID.' })
+  @ApiOperation({
+    summary: 'Get document by ID',
+    description: 'Retrieves document details by ID.',
+  })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   @ApiResponse({ status: 200, description: 'Document fetched successfully.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
@@ -106,18 +157,28 @@ export class DocumentController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update document', description: 'Updates document metadata or replaces the uploaded file.' })
+  @ApiOperation({
+    summary: 'Update document',
+    description: 'Updates document metadata or replaces the uploaded file.',
+  })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        file: { type: 'string', format: 'binary', description: 'Optional new PDF file' },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Optional new file',
+        },
         categoryId: { type: 'string', description: 'Category UUID' },
         title: { type: 'string', description: 'Document Title' },
         expiryDate: { type: 'string', description: 'Expiry Date (YYYY-MM-DD)' },
-        reminderDaysBefore: { type: 'number', description: 'Reminder Days Before Expiry' },
+        reminderDaysBefore: {
+          type: 'number',
+          description: 'Reminder Days Before Expiry',
+        },
       },
     },
   })
@@ -125,18 +186,40 @@ export class DocumentController {
   @UseInterceptors(FileInterceptor('file', multerDocumentOptions))
   async update(
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(updateDocumentSchema)) dto: UpdateDocumentDto,
     @Req() req: AuthenticatedRequest,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const data = await this.documentService.update(id, dto, file, req.user.sub);
+    const rawBody = (req.body as Record<string, unknown>) || {};
+    const payload = sanitizeDocumentBody(rawBody);
+
+    const parsed = updateDocumentSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const data = await this.documentService.update(
+      id,
+      parsed.data,
+      file,
+      req.user.sub,
+    );
 
     return successResponse('Document updated successfully.', data);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete document', description: 'Deletes a document.' })
+  @ApiOperation({
+    summary: 'Delete document',
+    description: 'Deletes a document.',
+  })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   @ApiResponse({ status: 200, description: 'Document deleted successfully.' })
   async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
