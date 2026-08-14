@@ -55,6 +55,8 @@ export class BillService {
     data: BillResponseDto[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }> {
+    await this.updateOverdueBills();
+
     const {
       page,
       limit,
@@ -68,32 +70,67 @@ export class BillService {
       sortOrder,
     } = filter;
 
-    const where: Record<symbol | string, any> = {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Use flexible typing for Sequelize where conditions with operators
+
+    const where: any = {
       userId,
       deletedAt: null,
     };
 
-    if (status) where.status = status;
+    if (status === BillStatus.OVERDUE) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      where[Op.or] = [
+        { status: BillStatus.OVERDUE },
+        {
+          status: { [Op.in]: [BillStatus.PENDING, BillStatus.PARTIALLY_PAID] },
+          dueDate: { [Op.lt]: todayStr },
+        },
+      ];
+    } else if (status) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      where.status = status;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (categoryId) where.categoryId = categoryId;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (isRecurring !== undefined) where.isRecurring = isRecurring;
 
     if (dueFrom || dueTo) {
       const dueDateFilter: Record<symbol, string> = {};
       if (dueFrom) dueDateFilter[Op.gte] = dueFrom;
       if (dueTo) dueDateFilter[Op.lte] = dueTo;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       where.dueDate = dueDateFilter;
     }
 
     if (search) {
-      where[Op.or] = [
+      const searchConditions = [
         { title: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } },
       ];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (where[Op.or]) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        where[Op.and] = [
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          { [Op.or]: where[Op.or] },
+          { [Op.or]: searchConditions },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        delete where[Op.or];
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        where[Op.or] = searchConditions;
+      }
     }
 
     const offset = (page - 1) * limit;
 
     const { rows, count } = await this.billModel.findAndCountAll({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       where,
       order: [[sortBy, sortOrder]],
       limit,
@@ -117,6 +154,8 @@ export class BillService {
     page: number = 1,
     limit: number = 10,
   ): Promise<{ data: BillResponseDto[]; pagination: any }> {
+    await this.updateOverdueBills();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const futureDate = new Date(today);
@@ -129,7 +168,11 @@ export class BillService {
         userId,
         deletedAt: null,
         status: {
-          [Op.notIn]: [BillStatus.PAID, BillStatus.CANCELLED],
+          [Op.notIn]: [
+            BillStatus.PAID,
+            BillStatus.CANCELLED,
+            BillStatus.OVERDUE,
+          ],
         },
         dueDate: {
           [Op.between]: [
