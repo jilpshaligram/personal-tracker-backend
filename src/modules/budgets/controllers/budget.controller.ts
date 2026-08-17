@@ -30,8 +30,9 @@ interface AuthenticatedRequest extends Request {
 }
 
 @ApiTags('Budgets')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('budgets')
+@UseGuards(AuthGuard)
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 

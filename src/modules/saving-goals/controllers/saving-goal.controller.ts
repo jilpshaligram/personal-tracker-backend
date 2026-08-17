@@ -89,8 +89,9 @@ export class SavingGoalDepositDto {
 }
 
 @ApiTags('Saving Goals')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('saving-goals')
+@UseGuards(AuthGuard)
 export class SavingGoalController {
   constructor(
     private readonly savingGoalService: SavingGoalService,

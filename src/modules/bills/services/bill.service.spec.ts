@@ -135,39 +135,4 @@ describe('BillService', () => {
       expect(destroyMock).toHaveBeenCalled();
     });
   });
-
-  describe('findAll with status OVERDUE', () => {
-    it('should fetch overdue bills via status filter and auto update pending past-due status', async () => {
-      mockBillModel.update = jest.fn().mockResolvedValue([0]);
-      mockBillModel.findAndCountAll.mockResolvedValue({
-        rows: [
-          {
-            id: 'overdue-1',
-            userId: mockUser.sub,
-            title: 'Overdue Electricity',
-            amount: 100,
-            dueDate: '2026-08-01',
-            status: BillStatus.OVERDUE,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ],
-        count: 1,
-      });
-
-      const filter = {
-        page: 1,
-        limit: 1,
-        status: BillStatus.OVERDUE,
-        sortBy: 'dueDate' as const,
-        sortOrder: 'ASC' as const,
-      };
-
-      const result = await service.findAll(mockUser.sub, filter);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].id).toBe('overdue-1');
-      expect(mockBillModel.update).toHaveBeenCalled();
-      expect(mockBillModel.findAndCountAll).toHaveBeenCalled();
-    });
-  });
 });

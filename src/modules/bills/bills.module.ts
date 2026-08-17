@@ -11,10 +11,17 @@ import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { TransactionModule } from '../transactions/transaction.module';
 
+import { WalletsModule } from '../wallets/wallets.module';
+import { TransactionModule } from '../transactions/transaction.module';
+
+import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
+
 @Module({
   imports: [
     SequelizeModule.forFeature([Bill]),
     forwardRef(() => BillHistoryModule),
+    WalletsModule,
+    TransactionModule,
     SecurityModule,
     CloudinaryModule,
     WalletsModule,

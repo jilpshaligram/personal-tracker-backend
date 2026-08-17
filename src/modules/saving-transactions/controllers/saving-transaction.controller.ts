@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -38,8 +39,9 @@ interface AuthenticatedRequest extends Request {
 }
 
 @ApiTags('Saving Transactions')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller()
+@UseGuards(AuthGuard)
 export class SavingTransactionController {
   constructor(
     private readonly savingTransactionService: SavingTransactionService,
@@ -53,6 +55,7 @@ export class SavingTransactionController {
       'Records a contribution or withdrawal for a specific saving goal.',
   })
   @ApiParam({ name: 'goalId', description: 'Saving Goal UUID' })
+  @ApiBody({ type: CreateSavingTransactionDto })
   @ApiResponse({
     status: 201,
     description: 'Transaction recorded successfully.',
@@ -91,6 +94,7 @@ export class SavingTransactionController {
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.sub;
+
     const result = await this.savingTransactionService.findAllByGoal(
       goalId,
       userId,

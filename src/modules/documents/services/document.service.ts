@@ -12,7 +12,7 @@ import { UpdateDocumentDto } from '../dto/update-document.dto';
 import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 import { QueryDocumentDto } from '../dto/query-document.dto';
 import { DOCUMENT_QUERY_FIELDS } from '../constants/document-query-fields';
-import { QueryHelper } from 'src/common/helpers/query.helper';
+import { QueryHelper } from '../../../common/helpers/query.helper';
 
 type DocumentResponse = {
   id: string;
@@ -76,8 +76,8 @@ export class DocumentService {
       userId: currentUserId,
       categoryId: dto.categoryId,
       title: dto.title,
-      expiryDate: new Date(dto.expiryDate),
-      reminderDaysBefore: dto.reminderDaysBefore,
+      expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
+      reminderDaysBefore: dto.reminderDaysBefore ?? 7,
       fileUrl: uploadResult.secure_url,
       filePublicId: uploadResult.public_id,
       fileResourceType: file.mimetype.startsWith('image/')
@@ -213,7 +213,7 @@ export class DocumentService {
     const updateData: Partial<{
       categoryId: string;
       title: string;
-      expiryDate: Date;
+      expiryDate: Date | null;
       reminderDaysBefore: number;
       fileUrl: string;
       filePublicId: string;
@@ -228,7 +228,7 @@ export class DocumentService {
       }),
 
       ...(dto.expiryDate !== undefined && {
-        expiryDate: new Date(dto.expiryDate),
+        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
       }),
 
       ...(dto.reminderDaysBefore !== undefined && {
