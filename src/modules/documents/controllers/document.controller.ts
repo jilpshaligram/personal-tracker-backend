@@ -58,7 +58,7 @@ export class DocumentController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Upload document',
-    description: 'Uploads a document with metadata.',
+    description: 'Uploads a PDF document with metadata.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

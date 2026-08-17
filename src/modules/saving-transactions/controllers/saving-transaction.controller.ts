@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -33,6 +34,7 @@ import {
 } from '../dto/update-saving-transaction.dto';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { QuerySavingTransactionDto } from '../dto/query-saving-transaction.dto';
+import { AuthGuard } from 'src/common/guards/auth.guard';
 
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;

@@ -1,8 +1,5 @@
 import { ActionType } from '../enums/action-type.enum';
 
-/**
- * Audit log interface
- */
 export interface IAuditLog {
   id?: string;
   userId: string;

@@ -10,6 +10,7 @@ import {
 import { PaymentMethod } from '../../bills/enums/payment-method.enum';
 import { BillHistoryStatus } from '../interfaces/bill-history.interface';
 import { Bill } from '../../bills/schemas/bill.schema';
+import { Transaction } from '../../transactions/schemas/transaction.schema';
 
 @Table({
   tableName: 'bill_history',
@@ -32,6 +33,13 @@ export class BillHistory extends Model {
 
   @BelongsTo(() => Bill)
   declare bill: Bill;
+
+  @ForeignKey(() => Transaction)
+  @Column({ type: DataType.UUID, allowNull: true })
+  declare transactionId: string | null;
+
+  @BelongsTo(() => Transaction)
+  declare transaction: Transaction | null;
 
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW, allowNull: false })
   declare paymentDate: Date;

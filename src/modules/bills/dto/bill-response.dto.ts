@@ -1,6 +1,7 @@
 import { BillStatus } from '../enums/bill-status.enum';
 import { RecurringType } from '../enums/recurring-type.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
+import { BillHistoryResponseDto } from '../../bill-history/dto/bill-history-response.dto';
 
 export interface BillResponseDto {
   id: string;
@@ -25,6 +26,11 @@ export interface BillResponseDto {
     size: number;
   } | null;
   notes: string | null;
+  paidAmount: number;
+  remainingAmount: number;
+  totalAmountPaid?: number;
+  transactionId?: string | null;
+  paymentHistory?: BillHistoryResponseDto[];
   createdAt: Date;
   updatedAt: Date;
 }

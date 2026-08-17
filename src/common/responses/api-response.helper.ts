@@ -16,15 +16,11 @@ export function errorResponse(message: string, errors: unknown[] = []) {
 }
 
 export const apiResponse = {
-  success: <T = unknown>(
-    message: string,
-    data?: T,
-    pagination?: Record<string, unknown>,
-  ) => ({
+  success: <T = unknown>(message: string, data?: T, pagination?: unknown) => ({
     success: true,
     message,
     ...(data !== undefined && { data }),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
     ...(pagination !== undefined && { pagination }),
   }),
   error: (message: string, errors: unknown[] = []) => ({

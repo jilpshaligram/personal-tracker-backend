@@ -10,22 +10,18 @@ export const createBillSchema = z
       .min(1, 'Title is required')
       .max(150, 'Title must be at most 150 characters'),
     description: z.string().optional(),
-    amount: z.preprocess(
-      (val) => (typeof val === 'string' ? parseFloat(val) : val),
-      z
-        .number({ message: 'Amount must be a number' })
-        .positive('Amount must be greater than 0'),
-    ),
-    dueDate: z.string().refine((date) => {
-      const inputDateStr = date.split('T')[0];
-      const d = new Date(`${inputDateStr}T00:00:00`);
+    amount: z.coerce.number().positive('Amount must be greater than 0'),
+    dueDate: z.string().refine((dateStr) => {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      return d >= today;
+      const targetDate = new Date(d);
+      targetDate.setHours(0, 0, 0, 0);
+      return targetDate >= today;
     }, 'Due date cannot be in the past'),
     isRecurring: z.preprocess(
-      (val) =>
-        typeof val === 'string' ? val === 'true' || val === '1' : Boolean(val),
+      (val) => val === 'true' || val === true,
       z.boolean().default(false),
     ),
     recurringType: z.nativeEnum(RecurringType).optional(),
@@ -33,40 +29,38 @@ export const createBillSchema = z
       (val) => {
         if (typeof val === 'string') {
           try {
-            const parsed = JSON.parse(val) as unknown;
-            if (Array.isArray(parsed)) return (parsed as unknown[]).map(Number);
+            const parsed: unknown = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed;
           } catch {
-            return val
-              .split(',')
-              .map((s) => s.trim())
-              .filter((s) => s.length > 0)
-              .map((s) => Number(s))
-              .filter((n) => !isNaN(n));
+            return val.split(',').map((v) => parseInt(v.trim(), 10));
           }
-        }
-        if (Array.isArray(val)) {
-          return val.map((item) => Number(item)).filter((n) => !isNaN(n));
         }
         return val;
       },
       z
         .array(
-          z.number().refine((val) => [1, 3, 7, 14, 30].includes(val), {
+          z.coerce.number().refine((val) => [1, 3, 7, 14, 30].includes(val), {
             message: 'Reminder days must be one of: 1, 3, 7, 14, 30',
           }),
         )
         .default([]),
     ),
-    attachment: z
-      .object({
-        url: z.string().url(),
-        publicId: z.string(),
-        fileName: z.string(),
-        mimeType: z.string(),
-        size: z.number(),
-      })
-      .nullable()
-      .optional(),
+    attachment: z.preprocess(
+      (val) =>
+        val && typeof val === 'object' && Object.keys(val).length === 0
+          ? undefined
+          : val,
+      z
+        .object({
+          url: z.string().url(),
+          publicId: z.string(),
+          fileName: z.string(),
+          mimeType: z.string(),
+          size: z.coerce.number(),
+        })
+        .optional()
+        .nullable(),
+    ),
     notes: z.string().optional(),
   })
   .refine(
