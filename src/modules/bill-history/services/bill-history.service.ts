@@ -1,7 +1,8 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Transaction } from 'sequelize';
+import { Transaction as DbTransaction } from 'sequelize';
 import { BillHistory } from '../schemas/bill-history.schema';
+import { Transaction } from '../../transactions/schemas/transaction.schema';
 import { CreateBillHistoryDto } from '../dto/create-bill-history.dto';
 import { BillHistoryResponseDto } from '../dto/bill-history-response.dto';
 import { BillHistoryMapper } from '../mapper/bill-history.mapper';
@@ -16,18 +17,19 @@ export class BillHistoryService {
 
   async createHistory(
     dto: CreateBillHistoryDto,
-    transaction?: unknown,
+    transaction?: DbTransaction,
   ): Promise<BillHistory> {
     return this.billHistoryModel.create(
       {
         billId: dto.billId,
+        transactionId: dto.transactionId ?? null,
         amountPaid: dto.amountPaid,
         paymentMethod: dto.paymentMethod,
         status: dto.status,
         remarks: dto.remarks,
         paymentDate: new Date(),
       },
-      { transaction: transaction ? (transaction as Transaction) : undefined },
+      { transaction },
     );
   }
 
@@ -37,12 +39,24 @@ export class BillHistoryService {
     limit: number = 10,
   ): Promise<{
     data: BillHistoryResponseDto[];
-    pagination: Record<string, number>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   }> {
     const offset = (page - 1) * limit;
 
     const { rows, count } = await this.billHistoryModel.findAndCountAll({
       where: { billId },
+      include: [
+        {
+          model: Transaction,
+          as: 'transaction',
+          required: false,
+        },
+      ],
       order: [['paymentDate', 'DESC']],
       limit,
       offset,
@@ -59,9 +73,13 @@ export class BillHistoryService {
     };
   }
 
-  async getPaymentSummary(billId: string): Promise<PaymentSummary> {
+  async getPaymentSummary(
+    billId: string,
+    transaction?: DbTransaction,
+  ): Promise<PaymentSummary> {
     const histories = await this.billHistoryModel.findAll({
       where: { billId },
+      transaction,
     });
 
     const totalPayments = histories.length;
