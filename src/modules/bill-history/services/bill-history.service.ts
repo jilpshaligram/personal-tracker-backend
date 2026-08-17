@@ -1,5 +1,6 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { Transaction } from 'sequelize';
 import { BillHistory } from '../schemas/bill-history.schema';
 import { CreateBillHistoryDto } from '../dto/create-bill-history.dto';
 import { BillHistoryResponseDto } from '../dto/bill-history-response.dto';
@@ -13,22 +14,31 @@ export class BillHistoryService {
     private readonly billHistoryModel: typeof BillHistory,
   ) {}
 
-  async createHistory(dto: CreateBillHistoryDto): Promise<BillHistory> {
-    return this.billHistoryModel.create({
-      billId: dto.billId,
-      amountPaid: dto.amountPaid,
-      paymentMethod: dto.paymentMethod,
-      status: dto.status,
-      remarks: dto.remarks,
-      paymentDate: new Date(),
-    });
+  async createHistory(
+    dto: CreateBillHistoryDto,
+    transaction?: unknown,
+  ): Promise<BillHistory> {
+    return this.billHistoryModel.create(
+      {
+        billId: dto.billId,
+        amountPaid: dto.amountPaid,
+        paymentMethod: dto.paymentMethod,
+        status: dto.status,
+        remarks: dto.remarks,
+        paymentDate: new Date(),
+      },
+      { transaction: transaction ? (transaction as Transaction) : undefined },
+    );
   }
 
   async findByBill(
     billId: string,
     page: number = 1,
     limit: number = 10,
-  ): Promise<{ data: BillHistoryResponseDto[]; pagination: any }> {
+  ): Promise<{
+    data: BillHistoryResponseDto[];
+    pagination: Record<string, number>;
+  }> {
     const offset = (page - 1) * limit;
 
     const { rows, count } = await this.billHistoryModel.findAndCountAll({

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,10 +10,16 @@ import {
   Param,
   Patch,
   Query,
+  Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -25,16 +32,152 @@ import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 import { updateUserSchema, UpdateUserDto } from '../dto/update-user.dto';
+import { updateProfileSchema } from '../dto/update-profile.dto';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
 import { Gender } from '../enums/gender.enum';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
+
+  // ─── My Profile ──────────────────────────────────────────────────────────
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get my profile',
+    description:
+      'Returns the profile of the currently authenticated user: userId, firstName, lastName, email, phone, role, profileImage, dateOfBirth, gender.',
+  })
+  @ApiResponse({ status: 200, description: 'Profile fetched successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async getMyProfile(@Req() req: AuthenticatedRequest) {
+    const user = await this.usersService.findById(req.user.sub);
+    if (!user) {
+      throw new NotFoundException({
+        success: false,
+        message: 'User not found',
+        errors: [],
+      });
+    }
+    const safe = this.usersService.toSafeUser(user);
+    return successResponse('Profile fetched successfully.', {
+      userId: safe.id,
+      firstName: safe.firstName,
+      lastName: safe.lastName,
+      email: safe.email,
+      phone: safe.phone,
+      role: safe.role,
+      profileImage: safe.profileImage,
+      dateOfBirth: safe.dateOfBirth,
+      gender: safe.gender,
+    });
+  }
+
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(
+            new BadRequestException(
+              'Only image files are allowed for profileImage',
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data', 'application/json')
+  @ApiOperation({
+    summary: 'Update my profile',
+    description:
+      'Accepts multipart/form-data OR application/json. ' +
+      'email and phone cannot be changed here — they require a separate verification flow.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string', example: 'John' },
+        lastName: { type: 'string', example: 'Doe' },
+        dateOfBirth: { type: 'string', example: '1995-05-15' },
+        gender: { type: 'string', enum: ['MALE', 'FEMALE', 'OTHER'] },
+        profileImage: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Upload an image file (max 5 MB). Ignored if sending JSON with profileImage URL.',
+        },
+        notificationEnabled: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Validation error.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async updateMyProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body() rawBody: Record<string, unknown>,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    // If a file was uploaded, push it to Cloudinary and use the secure URL
+    let profileImageUrl: string | undefined;
+    if (file) {
+      const result = await this.cloudinaryService.uploadFile(file);
+      profileImageUrl = result.secure_url;
+    }
+
+    // Merge raw body + uploaded image URL, then validate through Zod
+    const payload = {
+      ...rawBody,
+      ...(profileImageUrl ? { profileImage: profileImageUrl } : {}),
+    };
+
+    const parsed = updateProfileSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const updated = await this.usersService.updateUser(
+      req.user.sub,
+      parsed.data,
+    );
+    const safe = this.usersService.toSafeUser(updated);
+    return successResponse('Profile updated successfully.', {
+      userId: safe.id,
+      firstName: safe.firstName,
+      lastName: safe.lastName,
+      email: safe.email,
+      phone: safe.phone,
+      role: safe.role,
+      profileImage: safe.profileImage,
+      dateOfBirth: safe.dateOfBirth,
+      gender: safe.gender,
+    });
+  }
+
+  // ─── Admin / General ─────────────────────────────────────────────────────
 
   @Get()
   @HttpCode(HttpStatus.OK)

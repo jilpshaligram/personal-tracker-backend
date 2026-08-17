@@ -1,29 +1,35 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
+  BadRequestException,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
+  Patch,
+  Post,
   Query,
-  UseGuards,
-  UsePipes,
   Req,
+  UseInterceptors,
+  UploadedFile,
+  UseGuards,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import { type Request } from 'express';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillService } from '../services/bill.service';
-import { CreateBillDto, createBillSchema } from '../dto/create-bill.dto';
-import { UpdateBillDto, updateBillSchema } from '../dto/update-bill.dto';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
+import { createBillSchema } from '../dto/create-bill.dto';
+import { updateBillSchema } from '../dto/update-bill.dto';
 import { PayBillDto, payBillSchema } from '../dto/pay-bill.dto';
 import { BillFilterDto, billFilterSchema } from '../dto/bill-filter.dto';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -31,9 +37,37 @@ import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { BillStatus } from '../../bills/enums/bill-status.enum';
+import { multerDocumentOptions } from '../../documents/multer.config';
 
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;
+}
+
+function sanitizeBillBody(
+  rawBody: Record<string, unknown>,
+  isUpdate: boolean = false,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rawBody || {})) {
+    const cleanKey = key.trim();
+    payload[cleanKey] = value;
+  }
+
+  if (payload.attachment !== undefined) {
+    if (payload.attachment === '' || payload.attachment === 'undefined') {
+      payload.attachment = isUpdate ? null : undefined;
+    } else if (payload.attachment === null || payload.attachment === 'null') {
+      payload.attachment = null;
+    } else if (typeof payload.attachment === 'string') {
+      try {
+        payload.attachment = JSON.parse(payload.attachment);
+      } catch {
+        // keep string if not valid JSON
+      }
+    }
+  }
+
+  return payload;
 }
 
 @ApiTags('Bills')
@@ -44,6 +78,7 @@ export class BillController {
   constructor(
     private readonly billService: BillService,
     private readonly billHistoryService: BillHistoryService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Get()
@@ -125,8 +160,7 @@ export class BillController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const { data, pagination } = await this.billService.findUpcoming(
+    const res = await this.billService.findUpcoming(
       req.user.sub,
       days ? parseInt(days, 10) : 7,
       page ? parseInt(page, 10) : 1,
@@ -134,8 +168,8 @@ export class BillController {
     );
     return apiResponse.success(
       'Upcoming bills fetched successfully',
-      data,
-      pagination,
+      res.data,
+      res.pagination as Record<string, unknown>,
     );
   }
 
@@ -153,31 +187,229 @@ export class BillController {
   }
 
   @Post()
+  @UseInterceptors(FileInterceptor('attachment', multerDocumentOptions))
+  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Create new bill',
-    description: 'Schedules a new recurring or one-time bill.',
+    description:
+      'Schedules a new recurring or one-time bill. Accepts application/json or multipart/form-data with file attachment (receipt, invoice, or document). Supported file types: PDF, JPG, JPEG, PNG, WEBP, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV (max 10MB).',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['categoryId', 'title', 'amount', 'dueDate'],
+      properties: {
+        categoryId: {
+          type: 'string',
+          example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          description: 'Category UUID',
+        },
+        title: {
+          type: 'string',
+          example: 'Electricity Bill',
+          description: 'Bill title',
+        },
+        description: {
+          type: 'string',
+          example: 'Monthly electric bill',
+          description: 'Description',
+        },
+        amount: { type: 'number', example: 120.5, description: 'Bill amount' },
+        dueDate: {
+          type: 'string',
+          example: '2026-09-01',
+          description: 'Due Date (YYYY-MM-DD)',
+        },
+        isRecurring: {
+          type: 'boolean',
+          example: false,
+          description: 'Is bill recurring',
+        },
+        recurringType: {
+          type: 'string',
+          enum: [
+            'DAILY',
+            'WEEKLY',
+            'MONTHLY',
+            'QUARTERLY',
+            'HALF_YEARLY',
+            'YEARLY',
+          ],
+          description: 'Recurring type',
+        },
+        reminderDaysBefore: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 3, 7],
+          description: 'Reminder days before due date',
+        },
+        attachment: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Bill receipt/invoice/document file (PDF, JPG, PNG, WEBP, DOC, XLS, etc. max 10MB)',
+        },
+        notes: {
+          type: 'string',
+          example: 'Account #12345',
+          description: 'Notes',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 201, description: 'Bill created successfully.' })
-  @UsePipes(new ZodValidationPipe(createBillSchema))
-  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateBillDto) {
-    const data = await this.billService.create(req.user.sub, dto);
+  async create(
+    @Req() req: AuthenticatedRequest,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const rawBody = (req.body as Record<string, unknown>) || {};
+    const payload = sanitizeBillBody(rawBody, false);
+
+    if (file) {
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        'bills',
+      );
+      payload.attachment = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+      };
+    }
+
+    const parsed = createBillSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const data = await this.billService.create(req.user.sub, parsed.data);
     return apiResponse.success('Bill created successfully', data);
   }
 
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('attachment', multerDocumentOptions))
+  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Update bill',
-    description: 'Updates details of an existing bill.',
+    description:
+      'Updates details of an existing bill. Accepts application/json or multipart/form-data with file attachment (receipt, invoice, or document). Supported file types: PDF, JPG, JPEG, PNG, WEBP, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV (max 10MB).',
   })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        categoryId: {
+          type: 'string',
+          example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          description: 'Category UUID',
+        },
+        title: {
+          type: 'string',
+          example: 'Updated Bill Title',
+          description: 'Title',
+        },
+        description: {
+          type: 'string',
+          example: 'Updated description',
+          description: 'Description',
+        },
+        amount: { type: 'number', example: 135.0, description: 'Amount' },
+        dueDate: {
+          type: 'string',
+          example: '2026-09-15',
+          description: 'Due Date (YYYY-MM-DD)',
+        },
+        isRecurring: {
+          type: 'boolean',
+          example: true,
+          description: 'Is bill recurring',
+        },
+        recurringType: {
+          type: 'string',
+          enum: [
+            'DAILY',
+            'WEEKLY',
+            'MONTHLY',
+            'QUARTERLY',
+            'HALF_YEARLY',
+            'YEARLY',
+          ],
+          description: 'Recurring type',
+        },
+        reminderDaysBefore: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [3, 7],
+          description: 'Reminder days before due date',
+        },
+        attachment: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'New receipt/invoice/document file to upload (PDF, JPG, PNG, WEBP, DOC, XLS, etc. max 10MB)',
+        },
+        notes: {
+          type: 'string',
+          example: 'Updated notes',
+          description: 'Notes',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'Bill updated successfully.' })
-  @UsePipes(new ZodValidationPipe(updateBillSchema))
   async update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() dto: UpdateBillDto,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    const data = await this.billService.update(req.user.sub, id, dto);
+    const rawBody = (req.body as Record<string, unknown>) || {};
+    const payload = sanitizeBillBody(rawBody, true);
+
+    if (file) {
+      const existingBill = await this.billService.findOne(req.user.sub, id);
+      if (existingBill.attachment?.publicId) {
+        await this.cloudinaryService.deleteFile(
+          existingBill.attachment.publicId,
+          'auto',
+        );
+      }
+
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        'bills',
+      );
+      payload.attachment = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+      };
+    }
+
+    const parsed = updateBillSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Validation failed',
+        errors: parsed.error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const data = await this.billService.update(req.user.sub, id, parsed.data);
     return apiResponse.success('Bill updated successfully', data);
   }
 
@@ -196,18 +428,21 @@ export class BillController {
   @Post(':id/pay')
   @ApiOperation({
     summary: 'Pay bill',
-    description: 'Marks bill as paid and optionally creates a transaction.',
+    description:
+      'Marks bill as paid, deducts wallet balance, creates an expense transaction, and records payment history.',
   })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
-  @ApiResponse({ status: 200, description: 'Bill paid successfully.' })
-  @UsePipes(new ZodValidationPipe(payBillSchema))
+  @ApiResponse({ status: 200, description: 'Payment recorded successfully.' })
   async pay(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() dto: PayBillDto,
+    @Body(new ZodValidationPipe(payBillSchema)) dto: PayBillDto,
   ) {
-    await this.billService.pay(req.user.sub, id, dto);
-    return apiResponse.success('Bill paid successfully');
+    const data = (await this.billService.pay(req.user.sub, id, dto)) as Record<
+      string,
+      unknown
+    >;
+    return apiResponse.success('Payment recorded successfully', data);
   }
 
   @Get(':id/history')
@@ -239,16 +474,15 @@ export class BillController {
     @Query('limit') limit?: string,
   ) {
     await this.billService.findOne(req.user.sub, id);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const { data, pagination } = await this.billHistoryService.findByBill(
+    const res = await this.billHistoryService.findByBill(
       id,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 10,
     );
     return apiResponse.success(
       'Bill history fetched successfully',
-      data,
-      pagination,
+      res.data,
+      res.pagination,
     );
   }
 }

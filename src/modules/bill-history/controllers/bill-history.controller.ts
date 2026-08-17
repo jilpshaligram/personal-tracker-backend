@@ -40,7 +40,6 @@ export class BillHistoryController {
   async findByBill(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     await this.billService.findOne(req.user.sub, id);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { data, pagination } = await this.billHistoryService.findByBill(id);
     return apiResponse.success(
       'Bill history fetched successfully',

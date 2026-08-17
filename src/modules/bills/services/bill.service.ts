@@ -19,6 +19,12 @@ import { BillStatus } from '../enums/bill-status.enum';
 import { RecurringType } from '../enums/recurring-type.enum';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillHistoryStatus } from '../../bill-history/interfaces/bill-history.interface';
+import { WalletRepository } from '../../wallets/repositories/wallet.repository';
+import { UpdateWalletDto as WalletUpdateDto } from '../../wallets/dto/update-wallet.dto';
+import { TransactionRepository } from '../../transactions/repositories/transaction.repository';
+import { TransactionType } from '../../transactions/enums/transaction-type.enum';
+import { PaymentMethod as TxPaymentMethod } from '../../transactions/enums/payment-method.enum';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class BillService {
@@ -26,7 +32,10 @@ export class BillService {
     @InjectModel(Bill)
     private readonly billModel: typeof Bill,
     private readonly billHistoryService: BillHistoryService,
+    private readonly walletRepository: WalletRepository,
+    private readonly transactionRepository: TransactionRepository,
     private readonly sequelize: Sequelize,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create(userId: string, dto: CreateBillDto): Promise<BillResponseDto> {
@@ -60,6 +69,8 @@ export class BillService {
       totalPages: number;
     };
   }> {
+    await this.updateOverdueBills();
+
     const {
       page,
       limit,
@@ -73,32 +84,67 @@ export class BillService {
       sortOrder,
     } = filter;
 
-    const where: Record<symbol | string, any> = {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Use flexible typing for Sequelize where conditions with operators
+
+    const where: any = {
       userId,
       deletedAt: null,
     };
 
-    if (status) where.status = status;
+    if (status === BillStatus.OVERDUE) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      where[Op.or] = [
+        { status: BillStatus.OVERDUE },
+        {
+          status: { [Op.in]: [BillStatus.PENDING, BillStatus.PARTIALLY_PAID] },
+          dueDate: { [Op.lt]: todayStr },
+        },
+      ];
+    } else if (status) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      where.status = status;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (categoryId) where.categoryId = categoryId;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (isRecurring !== undefined) where.isRecurring = isRecurring;
 
     if (dueFrom || dueTo) {
       const dueDateFilter: Record<symbol, string> = {};
       if (dueFrom) dueDateFilter[Op.gte] = dueFrom;
       if (dueTo) dueDateFilter[Op.lte] = dueTo;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       where.dueDate = dueDateFilter;
     }
 
     if (search) {
-      where[Op.or] = [
+      const searchConditions = [
         { title: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } },
       ];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (where[Op.or]) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        where[Op.and] = [
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          { [Op.or]: where[Op.or] },
+          { [Op.or]: searchConditions },
+        ];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        delete where[Op.or];
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        where[Op.or] = searchConditions;
+      }
     }
 
     const offset = (page - 1) * limit;
 
     const { rows, count } = await this.billModel.findAndCountAll({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       where,
       order: [[sortBy, sortOrder]],
       limit,
@@ -122,6 +168,8 @@ export class BillService {
     page: number = 1,
     limit: number = 10,
   ): Promise<{ data: BillResponseDto[]; pagination: any }> {
+    await this.updateOverdueBills();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const futureDate = new Date(today);
@@ -134,7 +182,11 @@ export class BillService {
         userId,
         deletedAt: null,
         status: {
-          [Op.notIn]: [BillStatus.PAID, BillStatus.CANCELLED],
+          [Op.notIn]: [
+            BillStatus.PAID,
+            BillStatus.CANCELLED,
+            BillStatus.OVERDUE,
+          ],
         },
         dueDate: {
           [Op.between]: [
@@ -216,19 +268,32 @@ export class BillService {
 
     this.validateBillOwnership(bill, userId);
 
+    // Delete Cloudinary attachment if present
+    if (bill.attachment?.publicId) {
+      try {
+        await this.cloudinaryService.deleteFile(
+          bill.attachment.publicId,
+          'auto',
+        );
+      } catch (error) {
+        // Log error but don't fail the delete operation
+        console.error('Failed to delete attachment from Cloudinary:', error);
+      }
+    }
+
     await bill.destroy();
   }
 
-  async pay(userId: string, id: string, dto: PayBillDto): Promise<void> {
-    const transaction = await this.sequelize.transaction({
+  async pay(userId: string, id: string, dto: PayBillDto): Promise<any> {
+    const dbTransaction = await this.sequelize.transaction({
       isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
     });
 
     try {
       const bill = await this.billModel.findOne({
         where: { id, deletedAt: null },
-        lock: transaction.LOCK.UPDATE,
-        transaction,
+        lock: dbTransaction.LOCK.UPDATE,
+        transaction: dbTransaction,
       });
 
       if (!bill) {
@@ -249,30 +314,100 @@ export class BillService {
         });
       }
 
+      // 1. Fetch user's wallet with row lock for update
+      const wallet = await this.walletRepository.findByUserIdForUpdate(
+        userId,
+        dbTransaction,
+      );
+
+      if (!wallet) {
+        throw new NotFoundException({
+          success: false,
+          message: 'Wallet not found for this user.',
+          errors: [],
+        });
+      }
+
+      // 2. Validate wallet balance
+      const currentBalance = Number(wallet.currentBalance);
+      const blockedAmount = Number(wallet.blockedAmount);
+      const availableBalance = currentBalance - blockedAmount;
+
+      if (availableBalance < dto.amountPaid) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Insufficient available balance in wallet to pay this bill',
+          errors: [],
+        });
+      }
+
+      // 3. Deduct paid amount from wallet current balance
+      const newCurrentBalance = currentBalance - dto.amountPaid;
+      await this.walletRepository.update(
+        wallet.id,
+        { currentBalance: newCurrentBalance } as WalletUpdateDto,
+        dbTransaction,
+      );
+
+      // 4. Create an EXPENSE transaction
+      const noteText =
+        dto.notes || dto.remarks || `Bill payment: ${bill.title}`;
+      const createdTx = await this.transactionRepository.create(
+        userId,
+        {
+          wallet_id: wallet.id,
+          category_id: bill.categoryId || undefined,
+          type: TransactionType.EXPENSE,
+          amount: dto.amountPaid,
+          payment_method: dto.paymentMethod as unknown as TxPaymentMethod,
+          note: noteText,
+          transaction_date: new Date().toISOString().split('T')[0],
+        },
+        dbTransaction,
+      );
+
+      // 5. Update bill status to PAID
       await bill.update(
         {
           status: BillStatus.PAID,
           paidDate: new Date().toISOString().split('T')[0],
           paymentMethod: dto.paymentMethod,
         },
-        { transaction },
+        { transaction: dbTransaction },
       );
 
-      await this.billHistoryService.createHistory({
-        billId: bill.id,
-        amountPaid: dto.amountPaid,
-        paymentMethod: dto.paymentMethod,
-        status: BillHistoryStatus.PAID,
-        remarks: dto.remarks,
-      });
+      // 6. Create bill history entry
+      const history = await this.billHistoryService.createHistory(
+        {
+          billId: bill.id,
+          amountPaid: dto.amountPaid,
+          paymentMethod: dto.paymentMethod,
+          status: BillHistoryStatus.PAID,
+          remarks: noteText,
+        },
+        dbTransaction,
+      );
 
+      // 7. If recurring, generate next recurring bill
       if (bill.isRecurring) {
-        await this.generateNextRecurringBill(bill, transaction);
+        await this.generateNextRecurringBill(bill, dbTransaction);
       }
 
-      await transaction.commit();
+      await dbTransaction.commit();
+
+      return {
+        id: history.id,
+        billId: bill.id,
+        transactionId: createdTx.id,
+        paymentDate: history.paymentDate,
+        amountPaid: Number(history.amountPaid),
+        paymentMethod: history.paymentMethod,
+        status: history.status,
+        createdAt: history.createdAt,
+        updatedAt: history.createdAt,
+      };
     } catch (error) {
-      await transaction.rollback();
+      await dbTransaction.rollback();
       throw error;
     }
   }

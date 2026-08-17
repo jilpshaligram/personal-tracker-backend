@@ -4,31 +4,58 @@ import { RecurringType } from '../enums/recurring-type.enum';
 
 export const updateBillSchema = z.object({
   categoryId: z.string().uuid('Invalid category ID').optional(),
-  title: z
-    .string()
-    .min(2, 'Title must be at least 2 characters')
-    .max(150, 'Title must be at most 150 characters')
-    .optional(),
+  title: z.string().max(150, 'Title must be at most 150 characters').optional(),
   description: z.string().optional(),
-  amount: z.number().positive('Amount must be greater than 0').optional(),
+  amount: z.preprocess(
+    (val) => (typeof val === 'string' ? parseFloat(val) : val),
+    z
+      .number({ message: 'Amount must be a number' })
+      .positive('Amount must be greater than 0')
+      .optional(),
+  ),
   dueDate: z
     .string()
     .refine((date) => {
-      const d = new Date(date);
+      const inputDateStr = date.split('T')[0];
+      const d = new Date(`${inputDateStr}T00:00:00`);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return d >= today;
     }, 'Due date cannot be in the past')
     .optional(),
-  isRecurring: z.boolean().optional(),
+  isRecurring: z.preprocess(
+    (val) => (typeof val === 'string' ? val === 'true' || val === '1' : val),
+    z.boolean().optional(),
+  ),
   recurringType: z.nativeEnum(RecurringType).optional(),
-  reminderDaysBefore: z
-    .array(
-      z.number().refine((val) => [1, 3, 7, 14, 30].includes(val), {
-        message: 'Reminder days must be one of: 1, 3, 7, 14, 30',
-      }),
-    )
-    .optional(),
+  reminderDaysBefore: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val) as unknown;
+          if (Array.isArray(parsed)) return (parsed as unknown[]).map(Number);
+        } catch {
+          return val
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+            .map((s) => Number(s))
+            .filter((n) => !isNaN(n));
+        }
+      }
+      if (Array.isArray(val)) {
+        return val.map((item) => Number(item)).filter((n) => !isNaN(n));
+      }
+      return val;
+    },
+    z
+      .array(
+        z.number().refine((val) => [1, 3, 7, 14, 30].includes(val), {
+          message: 'Reminder days must be one of: 1, 3, 7, 14, 30',
+        }),
+      )
+      .optional(),
+  ),
   attachment: z
     .object({
       url: z.string().url(),
@@ -37,6 +64,7 @@ export const updateBillSchema = z.object({
       mimeType: z.string(),
       size: z.number(),
     })
+    .nullable()
     .optional(),
   notes: z.string().optional(),
 });
@@ -89,7 +117,7 @@ export class UpdateBillDto {
     fileName: string;
     mimeType: string;
     size: number;
-  };
+  } | null;
 
   @ApiPropertyOptional({ example: 'Updated notes', description: 'Notes' })
   notes?: string;

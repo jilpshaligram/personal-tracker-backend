@@ -11,6 +11,7 @@ import {
   Req,
   Inject,
   forwardRef,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -38,7 +39,7 @@ import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { TransactionType } from '../../transactions/enums/transaction-type.enum';
 import { PaymentMethod } from '../../transactions/enums/payment-method.enum';
 import { z } from 'zod';
-
+import { AuthGuard } from 'src/common/guards/auth.guard';
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;
 }
@@ -89,8 +90,9 @@ export class SavingGoalDepositDto {
 }
 
 @ApiTags('Saving Goals')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('saving-goals')
+@UseGuards(AuthGuard)
 export class SavingGoalController {
   constructor(
     private readonly savingGoalService: SavingGoalService,
