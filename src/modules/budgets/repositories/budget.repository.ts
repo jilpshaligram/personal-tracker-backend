@@ -12,10 +12,17 @@ export class BudgetRepository {
     private readonly budgetModel: typeof Budget,
   ) {}
 
-  async create(userId: string, data: CreateBudgetDto): Promise<Budget> {
+  async create(
+    userId: string,
+    data: CreateBudgetDto,
+    startDate: string,
+    endDate: string,
+  ): Promise<Budget> {
     try {
       return await this.budgetModel.create({
         ...data,
+        startDate,
+        endDate,
         userId,
       });
     } catch (error: unknown) {
@@ -54,9 +61,15 @@ export class BudgetRepository {
     id: string,
     userId: string,
     data: UpdateBudgetDto,
+    startDate?: string,
+    endDate?: string,
   ): Promise<[number, Budget[]]> {
     try {
-      return await this.budgetModel.update(data, {
+      const updateData: Partial<Budget> = { ...data };
+      if (startDate) updateData.startDate = startDate;
+      if (endDate) updateData.endDate = endDate;
+
+      return await this.budgetModel.update(updateData, {
         where: { id, userId },
         returning: true,
       });

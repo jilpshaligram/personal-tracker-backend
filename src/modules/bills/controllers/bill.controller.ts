@@ -11,9 +11,7 @@ import {
   Req,
   UseInterceptors,
   UploadedFile,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -26,12 +24,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import { type Request } from 'express';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillService } from '../services/bill.service';
 import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
-import { CreateBillDto, createBillSchema } from '../dto/create-bill.dto';
-import { UpdateBillDto, updateBillSchema } from '../dto/update-bill.dto';
+import { createBillSchema } from '../dto/create-bill.dto';
+import { updateBillSchema } from '../dto/update-bill.dto';
 import { PayBillDto, payBillSchema } from '../dto/pay-bill.dto';
 import { BillFilterDto, billFilterSchema } from '../dto/bill-filter.dto';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -39,7 +37,6 @@ import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { BillStatus } from '../../bills/enums/bill-status.enum';
-import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 import { multerDocumentOptions } from '../../documents/multer.config';
 
 interface AuthenticatedRequest extends Request {
@@ -163,8 +160,7 @@ export class BillController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    
-    const { data, pagination } = await this.billService.findUpcoming(
+    const res = await this.billService.findUpcoming(
       req.user.sub,
       days ? parseInt(days, 10) : 7,
       page ? parseInt(page, 10) : 1,
