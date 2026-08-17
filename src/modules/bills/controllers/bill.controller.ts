@@ -10,7 +10,10 @@ import {
   UseGuards,
   UsePipes,
   Req,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -22,6 +25,7 @@ import {
 import type { Request } from 'express';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillService } from '../services/bill.service';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 import { CreateBillDto, createBillSchema } from '../dto/create-bill.dto';
 import { UpdateBillDto, updateBillSchema } from '../dto/update-bill.dto';
 import { PayBillDto, payBillSchema } from '../dto/pay-bill.dto';
@@ -44,19 +48,42 @@ export class BillController {
   constructor(
     private readonly billService: BillService,
     private readonly billHistoryService: BillHistoryService,
-  ) { }
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all bills', description: 'Retrieves user bills with filtering, search, and pagination.' })
+  @ApiOperation({
+    summary: 'Get all bills',
+    description: 'Retrieves user bills with filtering, search, and pagination.',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  @ApiQuery({ name: 'search', required: false, type: String, example: 'Electricity' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'Electricity',
+  })
   @ApiQuery({ name: 'status', required: false, enum: BillStatus })
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   @ApiQuery({ name: 'isRecurring', required: false, type: Boolean })
-  @ApiQuery({ name: 'dueFrom', required: false, type: String, example: '2026-01-01' })
-  @ApiQuery({ name: 'dueTo', required: false, type: String, example: '2026-12-31' })
-  @ApiQuery({ name: 'sortBy', required: false, enum: ['dueDate', 'amount', 'title', 'status', 'createdAt'] })
+  @ApiQuery({
+    name: 'dueFrom',
+    required: false,
+    type: String,
+    example: '2026-01-01',
+  })
+  @ApiQuery({
+    name: 'dueTo',
+    required: false,
+    type: String,
+    example: '2026-12-31',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['dueDate', 'amount', 'title', 'status', 'createdAt'],
+  })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
   @ApiResponse({ status: 200, description: 'Bills fetched successfully.' })
   async findAll(
@@ -71,17 +98,39 @@ export class BillController {
   }
 
   @Get('upcoming')
-  @ApiOperation({ summary: 'Get upcoming bills', description: 'Retrieves upcoming bills within specified days.' })
-  @ApiQuery({ name: 'days', required: false, example: '7', description: 'Number of upcoming days to query (default 7)' })
-  @ApiQuery({ name: 'page', required: false, example: '1', description: 'Page number (default 1)' })
-  @ApiQuery({ name: 'limit', required: false, example: '10', description: 'Page limit (default 10)' })
-  @ApiResponse({ status: 200, description: 'Upcoming bills fetched successfully.' })
+  @ApiOperation({
+    summary: 'Get upcoming bills',
+    description: 'Retrieves upcoming bills within specified days.',
+  })
+  @ApiQuery({
+    name: 'days',
+    required: false,
+    example: '7',
+    description: 'Number of upcoming days to query (default 7)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: '1',
+    description: 'Page number (default 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: '10',
+    description: 'Page limit (default 10)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Upcoming bills fetched successfully.',
+  })
   async findUpcoming(
     @Req() req: AuthenticatedRequest,
     @Query('days') days?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { data, pagination } = await this.billService.findUpcoming(
       req.user.sub,
       days ? parseInt(days, 10) : 7,
@@ -96,7 +145,10 @@ export class BillController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get bill by ID', description: 'Retrieves bill details.' })
+  @ApiOperation({
+    summary: 'Get bill by ID',
+    description: 'Retrieves bill details.',
+  })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
   @ApiResponse({ status: 200, description: 'Bill fetched successfully.' })
   @ApiResponse({ status: 404, description: 'Bill not found.' })
@@ -106,30 +158,92 @@ export class BillController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create new bill', description: 'Schedules a new recurring or one-time bill.' })
+  @ApiOperation({
+    summary: 'Create new bill',
+    description: 'Schedules a new recurring or one-time bill.',
+  })
   @ApiResponse({ status: 201, description: 'Bill created successfully.' })
+  @UseInterceptors(FileInterceptor('attachment'))
   @UsePipes(new ZodValidationPipe(createBillSchema))
-  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateBillDto) {
+  async create(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateBillDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    // Handle file upload if present
+    if (file) {
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        'bills',
+      );
+      dto.attachment = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+      };
+    }
+
     const data = await this.billService.create(req.user.sub, dto);
     return apiResponse.success('Bill created successfully', data);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update bill', description: 'Updates details of an existing bill.' })
+  @ApiOperation({
+    summary: 'Update bill',
+    description: 'Updates details of an existing bill.',
+  })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
   @ApiResponse({ status: 200, description: 'Bill updated successfully.' })
+  @UseInterceptors(FileInterceptor('attachment'))
   @UsePipes(new ZodValidationPipe(updateBillSchema))
   async update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateBillDto,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
+    // Handle file upload if present
+    if (file) {
+      // Get existing bill to clean up old attachment
+      const existingBill = await this.billService.findOne(req.user.sub, id);
+
+      // Delete old attachment if present
+      if (existingBill.attachment?.publicId) {
+        try {
+          await this.cloudinaryService.deleteFile(
+            existingBill.attachment.publicId,
+            'auto',
+          );
+        } catch (error) {
+          console.error('Failed to delete old attachment:', error);
+        }
+      }
+
+      // Upload new attachment
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        'bills',
+      );
+      dto.attachment = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+      };
+    }
+
     const data = await this.billService.update(req.user.sub, id, dto);
     return apiResponse.success('Bill updated successfully', data);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete bill', description: 'Deletes a bill record.' })
+  @ApiOperation({
+    summary: 'Delete bill',
+    description: 'Deletes a bill record.',
+  })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
   @ApiResponse({ status: 200, description: 'Bill deleted successfully.' })
   async delete(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
@@ -138,7 +252,10 @@ export class BillController {
   }
 
   @Post(':id/pay')
-  @ApiOperation({ summary: 'Pay bill', description: 'Marks bill as paid and optionally creates a transaction.' })
+  @ApiOperation({
+    summary: 'Pay bill',
+    description: 'Marks bill as paid and optionally creates a transaction.',
+  })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
   @ApiResponse({ status: 200, description: 'Bill paid successfully.' })
   @UsePipes(new ZodValidationPipe(payBillSchema))
@@ -152,11 +269,27 @@ export class BillController {
   }
 
   @Get(':id/history')
-  @ApiOperation({ summary: 'Get bill history', description: 'Retrieves payment history for a bill.' })
+  @ApiOperation({
+    summary: 'Get bill history',
+    description: 'Retrieves payment history for a bill.',
+  })
   @ApiParam({ name: 'id', description: 'Bill UUID' })
-  @ApiQuery({ name: 'page', required: false, example: '1', description: 'Page number (default 1)' })
-  @ApiQuery({ name: 'limit', required: false, example: '10', description: 'Page limit (default 10)' })
-  @ApiResponse({ status: 200, description: 'Bill history fetched successfully.' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: '1',
+    description: 'Page number (default 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: '10',
+    description: 'Page limit (default 10)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bill history fetched successfully.',
+  })
   async getHistory(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -164,6 +297,7 @@ export class BillController {
     @Query('limit') limit?: string,
   ) {
     await this.billService.findOne(req.user.sub, id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { data, pagination } = await this.billHistoryService.findByBill(
       id,
       page ? parseInt(page, 10) : 1,

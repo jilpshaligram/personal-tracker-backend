@@ -6,9 +6,14 @@ import {
 } from 'cloudinary';
 import { Readable } from 'stream';
 
+export type CloudinaryResourceType = 'image' | 'raw' | 'video' | 'auto';
+
 @Injectable()
 export class CloudinaryService {
-  uploadFile(file: Express.Multer.File): Promise<UploadApiResponse> {
+  uploadFile(
+    file: Express.Multer.File,
+    folder: string = 'documents',
+  ): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
       let resourceType: 'image' | 'raw' | 'video' = 'raw';
 
@@ -22,7 +27,7 @@ export class CloudinaryService {
 
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: 'documents',
+          folder,
           resource_type: resourceType,
         },
         (error: UploadApiErrorResponse, result: UploadApiResponse) => {
@@ -44,7 +49,7 @@ export class CloudinaryService {
 
   getViewUrl(
     publicId: string,
-    resourceType: 'image' | 'raw' | 'video',
+    resourceType: CloudinaryResourceType = 'raw',
   ): string {
     if (resourceType === 'raw') {
       return cloudinary.url(publicId, {
@@ -66,7 +71,7 @@ export class CloudinaryService {
 
   async deleteFile(
     publicId: string,
-    resourceType: 'image' | 'raw' | 'video' = 'raw',
+    resourceType: CloudinaryResourceType = 'raw',
   ): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId, {

@@ -19,6 +19,9 @@ import { BillStatus } from '../enums/bill-status.enum';
 import { RecurringType } from '../enums/recurring-type.enum';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillHistoryStatus } from '../../bill-history/interfaces/bill-history.interface';
+import { WalletRepository } from '../../wallets/repositories/wallet.repository';
+import { TransactionRepository } from '../../transactions/repositories/transaction.repository';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class BillService {
@@ -26,7 +29,10 @@ export class BillService {
     @InjectModel(Bill)
     private readonly billModel: typeof Bill,
     private readonly billHistoryService: BillHistoryService,
+    private readonly walletRepository: WalletRepository,
+    private readonly transactionRepository: TransactionRepository,
     private readonly sequelize: Sequelize,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create(userId: string, dto: CreateBillDto): Promise<BillResponseDto> {
@@ -53,7 +59,12 @@ export class BillService {
     filter: BillFilterDto,
   ): Promise<{
     data: BillResponseDto[];
-    pagination: { page: number; limit: number; total: number; totalPages: number };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   }> {
     await this.updateOverdueBills();
 
@@ -253,6 +264,19 @@ export class BillService {
     }
 
     this.validateBillOwnership(bill, userId);
+
+    // Delete Cloudinary attachment if present
+    if (bill.attachment?.publicId) {
+      try {
+        await this.cloudinaryService.deleteFile(
+          bill.attachment.publicId,
+          'auto',
+        );
+      } catch (error) {
+        // Log error but don't fail the delete operation
+        console.error('Failed to delete attachment from Cloudinary:', error);
+      }
+    }
 
     await bill.destroy();
   }

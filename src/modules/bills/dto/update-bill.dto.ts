@@ -42,28 +42,44 @@ export const updateBillSchema = z.object({
 });
 
 export class UpdateBillDto {
-  @ApiPropertyOptional({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Category UUID' })
+  @ApiPropertyOptional({
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    description: 'Category UUID',
+  })
   categoryId?: string;
 
   @ApiPropertyOptional({ example: 'Updated Bill Title', description: 'Title' })
   title?: string;
 
-  @ApiPropertyOptional({ example: 'Updated description', description: 'Description' })
+  @ApiPropertyOptional({
+    example: 'Updated description',
+    description: 'Description',
+  })
   description?: string;
 
-  @ApiPropertyOptional({ example: 135.00, description: 'Amount' })
+  @ApiPropertyOptional({ example: 135.0, description: 'Amount' })
   amount?: number;
 
-  @ApiPropertyOptional({ example: '2026-09-15', description: 'Due date (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-09-15',
+    description: 'Due date (YYYY-MM-DD)',
+  })
   dueDate?: string;
 
   @ApiPropertyOptional({ example: true, description: 'Is bill recurring' })
   isRecurring?: boolean;
 
-  @ApiPropertyOptional({ enum: RecurringType, example: RecurringType.MONTHLY, description: 'Recurring frequency' })
+  @ApiPropertyOptional({
+    enum: RecurringType,
+    example: RecurringType.MONTHLY,
+    description: 'Recurring frequency',
+  })
   recurringType?: RecurringType;
 
-  @ApiPropertyOptional({ example: [3, 7], description: 'Reminder days before due date' })
+  @ApiPropertyOptional({
+    example: [3, 7],
+    description: 'Reminder days before due date',
+  })
   reminderDaysBefore?: number[];
 
   @ApiPropertyOptional({ description: 'Bill attachment details' })

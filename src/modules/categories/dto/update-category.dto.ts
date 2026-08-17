@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { createCategorySchema } from './create-category.dto';
 import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
@@ -17,9 +16,16 @@ export const updateCategorySchema = createCategorySchema
   });
 
 export class UpdateCategoryDto {
-  @ApiPropertyOptional({ example: 'Restaurants & Fine Dining', description: 'Category name' })
+  @ApiPropertyOptional({
+    example: 'Restaurants & Fine Dining',
+    description: 'Category name',
+  })
   name?: string;
 
-  @ApiPropertyOptional({ enum: CategoryTransactionType, example: CategoryTransactionType.EXPENSE, description: 'Category type' })
+  @ApiPropertyOptional({
+    enum: CategoryTransactionType,
+    example: CategoryTransactionType.EXPENSE,
+    description: 'Category type',
+  })
   type?: CategoryTransactionType;
 }

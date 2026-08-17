@@ -28,6 +28,9 @@ export class ResetPasswordDto {
   @ApiProperty({ example: 'NewPassword123!', description: 'New password' })
   newPassword: string;
 
-  @ApiProperty({ example: 'NewPassword123!', description: 'Confirm new password' })
+  @ApiProperty({
+    example: 'NewPassword123!',
+    description: 'Confirm new password',
+  })
   confirmPassword: string;
 }
