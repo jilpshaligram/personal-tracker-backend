@@ -35,9 +35,6 @@ export const createBillSchema = z
             return val.split(',').map((v) => parseInt(v.trim(), 10));
           }
         }
-        if (Array.isArray(val)) {
-          return val.map((item) => Number(item)).filter((n) => !isNaN(n));
-        }
         return val;
       },
       z
