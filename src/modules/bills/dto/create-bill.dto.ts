@@ -7,7 +7,7 @@ export const createBillSchema = z
     categoryId: z.string().uuid('Invalid category ID'),
     title: z
       .string()
-      .min(2, 'Title must be at least 2 characters')
+      .min(1, 'Title is required')
       .max(150, 'Title must be at most 150 characters'),
     description: z.string().optional(),
     amount: z.coerce.number().positive('Amount must be greater than 0'),
@@ -34,6 +34,9 @@ export const createBillSchema = z
           } catch {
             return val.split(',').map((v) => parseInt(v.trim(), 10));
           }
+        }
+        if (Array.isArray(val)) {
+          return val.map((item) => Number(item)).filter((n) => !isNaN(n));
         }
         return val;
       },
@@ -125,7 +128,7 @@ export class CreateBillDto {
     fileName: string;
     mimeType: string;
     size: number;
-  };
+  } | null;
 
   @ApiPropertyOptional({
     example: 'Account #12345',

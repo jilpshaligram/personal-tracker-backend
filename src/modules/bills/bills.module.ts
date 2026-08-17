@@ -17,6 +17,8 @@ import { TransactionModule } from '../transactions/transaction.module';
   imports: [
     SequelizeModule.forFeature([Bill, BillHistory, Transaction]),
     forwardRef(() => BillHistoryModule),
+    WalletsModule,
+    TransactionModule,
     SecurityModule,
     CloudinaryModule,
     WalletsModule,

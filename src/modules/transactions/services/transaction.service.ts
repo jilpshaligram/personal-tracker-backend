@@ -122,7 +122,6 @@ export class TransactionService {
           }
 
           // Update Wallet
-          newCurrentBalance -= dto.amount;
           newBlockedAmount += dto.amount;
 
           // Update Saving Goal
@@ -166,7 +165,6 @@ export class TransactionService {
           }
 
           // Update Wallet
-          newCurrentBalance += dto.amount;
           newBlockedAmount -= dto.amount;
 
           // Update Saving Goal

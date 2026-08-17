@@ -17,14 +17,17 @@ export interface DocumentAttributes {
   userId: string;
   categoryId: string;
   title: string;
-  expiryDate: Date;
+  expiryDate: Date | null;
   reminderDaysBefore: number;
   fileUrl: string;
   filePublicId: string;
   fileResourceType: 'image' | 'raw' | 'video';
 }
 
-export type DocumentCreationAttributes = Optional<DocumentAttributes, 'id'>;
+export type DocumentCreationAttributes = Optional<
+  DocumentAttributes,
+  'id' | 'expiryDate'
+>;
 
 @Table({
   tableName: 'documents',
@@ -66,9 +69,9 @@ export class Document extends Model<
 
   @Column({
     type: DataType.DATEONLY,
-    allowNull: false,
+    allowNull: true,
   })
-  declare expiryDate: Date;
+  declare expiryDate: Date | null;
 
   @Default(7)
   @Column({
@@ -93,7 +96,7 @@ export class Document extends Model<
     type: DataType.STRING,
     allowNull: false,
   })
-  fileResourceType: 'image' | 'raw' | 'video';
+  declare fileResourceType: 'image' | 'raw' | 'video';
 
   @Column({
     type: DataType.DATE,

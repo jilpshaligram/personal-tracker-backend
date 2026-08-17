@@ -13,9 +13,17 @@ import {
 import { User } from '../../users/schemas/user.schema';
 import { ActionType } from '../enums/action-type.enum';
 
+/**
+ * Audit Log Schema
+ *
+ * Tracks all authenticated user actions for security, compliance, and debugging.
+ * Uses paranoid mode set to false to ensure audit logs are never soft-deleted.
+ *
+ * @table audit_logs
+ */
 @Table({
   tableName: 'audit_logs',
-  paranoid: false,
+  paranoid: false, // Hard deletes only - audit logs are immutable
   timestamps: true,
   underscored: false,
 })

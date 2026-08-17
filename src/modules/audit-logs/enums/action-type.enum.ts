@@ -1,3 +1,10 @@
+/**
+ * Audit log action types
+ *
+ * Categorizes the type of operation performed in an audit log entry
+ *
+ * @enum ActionType
+ */
 export enum ActionType {
   CREATE = 'CREATE',
   UPDATE = 'UPDATE',

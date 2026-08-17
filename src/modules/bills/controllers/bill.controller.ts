@@ -7,12 +7,10 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   Req,
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -21,6 +19,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillService } from '../services/bill.service';
@@ -29,7 +28,6 @@ import { UpdateBillDto, updateBillSchema } from '../dto/update-bill.dto';
 import { PayBillDto, payBillSchema } from '../dto/pay-bill.dto';
 import { BillFilterDto, billFilterSchema } from '../dto/bill-filter.dto';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
-import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { BillStatus } from '../../bills/enums/bill-status.enum';
@@ -42,7 +40,6 @@ interface AuthenticatedRequest extends Request {
 @ApiTags('Bills')
 @ApiBearerAuth()
 @Controller('bills')
-@UseGuards(AuthGuard)
 export class BillController {
   constructor(
     private readonly billService: BillService,

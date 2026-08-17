@@ -28,17 +28,18 @@ import { TransactionRepository } from '../../transactions/repositories/transacti
 import { TransactionType } from '../../transactions/enums/transaction-type.enum';
 import { PaymentMethod as TxPaymentMethod } from '../../transactions/enums/payment-method.enum';
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 @Injectable()
 export class BillService {
   constructor(
     @InjectModel(Bill)
     private readonly billModel: typeof Bill,
     private readonly billHistoryService: BillHistoryService,
-    private readonly sequelize: Sequelize,
-    private readonly cloudinaryService: CloudinaryService,
     private readonly walletRepository: WalletRepository,
     private readonly transactionRepository: TransactionRepository,
-  ) { }
+    private readonly sequelize: Sequelize,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   async create(userId: string, dto: CreateBillDto): Promise<BillResponseDto> {
     const bill = await this.billModel.create({
@@ -108,12 +109,14 @@ export class BillService {
     }
 
     if (categoryId) where.categoryId = categoryId;
+
     if (isRecurring !== undefined) where.isRecurring = isRecurring;
 
     if (dueFrom || dueTo) {
       const dueDateFilter: any = {};
       if (dueFrom) dueDateFilter[Op.gte] = dueFrom;
       if (dueTo) dueDateFilter[Op.lte] = dueTo;
+
       where.dueDate = dueDateFilter;
     }
 
@@ -169,7 +172,6 @@ export class BillService {
     };
   }
 
-
   async findUpcoming(
     userId: string,
     days: number = 7,
@@ -196,7 +198,11 @@ export class BillService {
         userId,
         deletedAt: null,
         status: {
-          [Op.notIn]: [BillStatus.PAID, BillStatus.CANCELLED],
+          [Op.notIn]: [
+            BillStatus.PAID,
+            BillStatus.CANCELLED,
+            BillStatus.OVERDUE,
+          ],
         },
         dueDate: {
           [Op.between]: [

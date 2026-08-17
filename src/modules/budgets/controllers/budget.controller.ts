@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -24,14 +25,15 @@ import { successResponse } from '../../../common/responses/api-response.helper';
 import { createBudgetSchema, CreateBudgetDto } from '../dto/create-budget.dto';
 import { updateBudgetSchema, UpdateBudgetDto } from '../dto/update-budget.dto';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
-
+import { AuthGuard } from 'src/common/guards/auth.guard';
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;
 }
 
 @ApiTags('Budgets')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('budgets')
+@UseGuards(AuthGuard)
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 

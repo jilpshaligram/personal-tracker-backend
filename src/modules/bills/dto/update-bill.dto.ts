@@ -4,11 +4,7 @@ import { RecurringType } from '../enums/recurring-type.enum';
 
 export const updateBillSchema = z.object({
   categoryId: z.string().uuid('Invalid category ID').optional(),
-  title: z
-    .string()
-    .min(2, 'Title must be at least 2 characters')
-    .max(150, 'Title must be at most 150 characters')
-    .optional(),
+  title: z.string().max(150, 'Title must be at most 150 characters').optional(),
   description: z.string().optional(),
   amount: z.coerce
     .number()
@@ -117,7 +113,7 @@ export class UpdateBillDto {
     fileName: string;
     mimeType: string;
     size: number;
-  };
+  } | null;
 
   @ApiPropertyOptional({ example: 'Updated notes', description: 'Notes' })
   notes?: string;
