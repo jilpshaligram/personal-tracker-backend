@@ -6,6 +6,8 @@ import {
 } from 'cloudinary';
 import { Readable } from 'stream';
 
+export type CloudinaryResourceType = 'image' | 'raw' | 'video' | 'auto';
+
 @Injectable()
 export class CloudinaryService {
   uploadFile(

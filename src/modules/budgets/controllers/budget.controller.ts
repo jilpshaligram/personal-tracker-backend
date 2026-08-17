@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,7 +21,6 @@ import type { Request } from 'express';
 import { BudgetService } from '../services/budget.service';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
-import { AuthGuard } from '../../../common/guards/auth.guard';
 import { createBudgetSchema, CreateBudgetDto } from '../dto/create-budget.dto';
 import { updateBudgetSchema, UpdateBudgetDto } from '../dto/update-budget.dto';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';

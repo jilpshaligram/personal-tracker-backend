@@ -11,7 +11,6 @@ import {
   Req,
   Inject,
   forwardRef,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -27,7 +26,6 @@ import { SavingGoalService } from '../services/saving-goal.service';
 import { TransactionService } from '../../transactions/services/transaction.service';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
-import { AuthGuard } from '../../../common/guards/auth.guard';
 import {
   createSavingGoalSchema,
   CreateSavingGoalDto,

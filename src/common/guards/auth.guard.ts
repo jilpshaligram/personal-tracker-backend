@@ -9,10 +9,6 @@ import { Request } from 'express';
 import { SecurityService } from '../../infrastructure/security/security.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
-interface AuthenticatedRequest extends Request {
-  user?: unknown;
-}
-
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
@@ -30,20 +26,18 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<Request>();
 
-    const authHeader = request.headers.authorization;
+    const cookieToken = (request.cookies as Record<string, string>)?.[
+      'access_token'
+    ];
+    const authHeader = request.headers['authorization'];
+    const bearerToken =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.split(' ')[1]
+        : null;
 
-    let token: string | undefined;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    }
-
-    if (!token) {
-      token = (request.cookies as Record<string, string> | undefined)
-        ?.access_token;
-    }
+    const token = cookieToken ?? bearerToken;
 
     if (!token) {
       throw new UnauthorizedException({
@@ -71,8 +65,7 @@ export class AuthGuard implements CanActivate {
       });
     }
 
-    request.user = payload;
-
+    (request as Request & { user: unknown }).user = payload;
     return true;
   }
 }

@@ -10,7 +10,6 @@ import {
   Post,
   Query,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -24,7 +23,6 @@ import type { Request } from 'express';
 import { SavingTransactionService } from '../services/saving-transaction.service';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
-import { AuthGuard } from '../../../common/guards/auth.guard';
 import {
   createSavingTransactionSchema,
   CreateSavingTransactionDto,

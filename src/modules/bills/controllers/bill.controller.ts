@@ -9,6 +9,8 @@ import {
   Post,
   Query,
   Req,
+  UseInterceptors,
+  UploadedFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -27,8 +29,9 @@ import {
 import type { Request } from 'express';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillService } from '../services/bill.service';
-import { createBillSchema } from '../dto/create-bill.dto';
-import { updateBillSchema } from '../dto/update-bill.dto';
+import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
+import { CreateBillDto, createBillSchema } from '../dto/create-bill.dto';
+import { UpdateBillDto, updateBillSchema } from '../dto/update-bill.dto';
 import { PayBillDto, payBillSchema } from '../dto/pay-bill.dto';
 import { BillFilterDto, billFilterSchema } from '../dto/bill-filter.dto';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
@@ -160,7 +163,8 @@ export class BillController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const res = await this.billService.findUpcoming(
+    
+    const { data, pagination } = await this.billService.findUpcoming(
       req.user.sub,
       days ? parseInt(days, 10) : 7,
       page ? parseInt(page, 10) : 1,

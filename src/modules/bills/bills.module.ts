@@ -7,6 +7,9 @@ import { BillHistoryModule } from '../bill-history/bill-history.module';
 import { BillReminderJob } from '../../jobs/bill-reminder.job';
 import { BillOverdueJob } from '../../jobs/bill-overdue.job';
 import { SecurityModule } from '../../infrastructure/security/security.module';
+import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
+import { WalletsModule } from '../wallets/wallets.module';
+import { TransactionModule } from '../transactions/transaction.module';
 
 import { WalletsModule } from '../wallets/wallets.module';
 import { TransactionModule } from '../transactions/transaction.module';
@@ -21,6 +24,8 @@ import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
     TransactionModule,
     SecurityModule,
     CloudinaryModule,
+    WalletsModule,
+    TransactionModule,
   ],
   controllers: [BillController],
   providers: [BillService, BillReminderJob, BillOverdueJob],
