@@ -137,27 +137,50 @@ export const createTransactionSchema = z
   );
 
 export class CreateTransactionDto {
-  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Wallet UUID' })
+  @ApiProperty({
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    description: 'Wallet UUID',
+  })
   wallet_id: string;
 
-  @ApiPropertyOptional({ example: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', description: 'Category UUID (Required for INCOME and EXPENSE)' })
+  @ApiPropertyOptional({
+    example: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    description: 'Category UUID (Required for INCOME and EXPENSE)',
+  })
   category_id?: string | null;
 
-  @ApiPropertyOptional({ example: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', description: 'Saving Goal UUID (Required for TRANSFER transactions)' })
+  @ApiPropertyOptional({
+    example: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+    description: 'Saving Goal UUID (Required for TRANSFER transactions)',
+  })
   saving_goal_id?: string | null;
 
-  @ApiProperty({ enum: TransactionType, example: TransactionType.EXPENSE, description: 'Transaction type' })
+  @ApiProperty({
+    enum: TransactionType,
+    example: TransactionType.EXPENSE,
+    description: 'Transaction type',
+  })
   type: TransactionType;
 
   @ApiProperty({ example: 49.99, description: 'Transaction amount' })
   amount: number;
 
-  @ApiPropertyOptional({ enum: PaymentMethod, example: PaymentMethod.CREDIT_CARD, description: 'Payment method' })
+  @ApiPropertyOptional({
+    enum: PaymentMethod,
+    example: PaymentMethod.CREDIT_CARD,
+    description: 'Payment method',
+  })
   payment_method?: PaymentMethod | null;
 
-  @ApiPropertyOptional({ example: 'Grocery shopping', description: 'Optional transaction note' })
+  @ApiPropertyOptional({
+    example: 'Grocery shopping',
+    description: 'Optional transaction note',
+  })
   note?: string | null;
 
-  @ApiProperty({ example: '2026-08-12', description: 'Transaction date (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2026-08-12',
+    description: 'Transaction date (YYYY-MM-DD)',
+  })
   transaction_date: string;
 }

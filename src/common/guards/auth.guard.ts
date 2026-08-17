@@ -29,7 +29,9 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
 
     // Prefer HttpOnly cookie; fall back to Authorization header for API clients / Swagger
-    const cookieToken = (request.cookies as Record<string, string>)?.['access_token'];
+    const cookieToken = (request.cookies as Record<string, string>)?.[
+      'access_token'
+    ];
     const authHeader = request.headers['authorization'];
     const bearerToken =
       authHeader && authHeader.startsWith('Bearer ')

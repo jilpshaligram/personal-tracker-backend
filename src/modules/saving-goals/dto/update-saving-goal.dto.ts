@@ -63,15 +63,29 @@ export class UpdateSavingGoalDto {
   @ApiPropertyOptional({ example: 6000, description: 'Target amount' })
   targetAmount?: number;
 
-  @ApiPropertyOptional({ example: '2027-06-30', description: 'Target date (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2027-06-30',
+    description: 'Target date (YYYY-MM-DD)',
+  })
   targetDate?: string;
 
-  @ApiPropertyOptional({ example: 'ACTIVE', enum: ['ACTIVE', 'CANCELLED'], description: 'Goal status' })
+  @ApiPropertyOptional({
+    example: 'ACTIVE',
+    enum: ['ACTIVE', 'CANCELLED'],
+    description: 'Goal status',
+  })
   status?: 'ACTIVE' | 'CANCELLED';
 
-  @ApiPropertyOptional({ example: true, description: 'Enable automatic reminders' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Enable automatic reminders',
+  })
   autoReminder?: boolean;
 
-  @ApiPropertyOptional({ example: 'MONTHLY', enum: ['DAILY', 'WEEKLY', 'MONTHLY'], description: 'Reminder frequency' })
+  @ApiPropertyOptional({
+    example: 'MONTHLY',
+    enum: ['DAILY', 'WEEKLY', 'MONTHLY'],
+    description: 'Reminder frequency',
+  })
   reminderFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
 }

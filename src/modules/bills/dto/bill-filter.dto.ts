@@ -27,22 +27,37 @@ export class BillFilterDto {
   @ApiPropertyOptional({ description: 'Search title/description/notes' })
   search?: string;
 
-  @ApiPropertyOptional({ enum: BillStatus, description: 'Filter by bill status' })
+  @ApiPropertyOptional({
+    enum: BillStatus,
+    description: 'Filter by bill status',
+  })
   status?: BillStatus;
 
   @ApiPropertyOptional({ description: 'Filter by category UUID' })
   categoryId?: string;
 
-  @ApiPropertyOptional({ type: Boolean, description: 'Filter recurring status' })
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Filter recurring status',
+  })
   isRecurring?: boolean;
 
-  @ApiPropertyOptional({ example: '2026-08-01', description: 'Due date from (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-08-01',
+    description: 'Due date from (YYYY-MM-DD)',
+  })
   dueFrom?: string;
 
-  @ApiPropertyOptional({ example: '2026-08-31', description: 'Due date to (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-08-31',
+    description: 'Due date to (YYYY-MM-DD)',
+  })
   dueTo?: string;
 
-  @ApiPropertyOptional({ example: 'dueDate', enum: ['dueDate', 'amount', 'title', 'status', 'createdAt'] })
+  @ApiPropertyOptional({
+    example: 'dueDate',
+    enum: ['dueDate', 'amount', 'title', 'status', 'createdAt'],
+  })
   sortBy: 'dueDate' | 'amount' | 'title' | 'status' | 'createdAt' = 'dueDate';
 
   @ApiPropertyOptional({ example: 'ASC', enum: ['ASC', 'DESC'] })

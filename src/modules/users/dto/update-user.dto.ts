@@ -33,15 +33,28 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ example: '1234567890', description: 'Phone number' })
   phone?: string;
 
-  @ApiPropertyOptional({ example: '1995-05-15', description: 'Date of birth (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '1995-05-15',
+    description: 'Date of birth (YYYY-MM-DD)',
+  })
   dateOfBirth?: string;
 
-  @ApiPropertyOptional({ example: 'MALE', enum: ['MALE', 'FEMALE', 'OTHER'], description: 'Gender' })
+  @ApiPropertyOptional({
+    example: 'MALE',
+    enum: ['MALE', 'FEMALE', 'OTHER'],
+    description: 'Gender',
+  })
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', description: 'Profile image URL' })
+  @ApiPropertyOptional({
+    example: 'https://example.com/avatar.jpg',
+    description: 'Profile image URL',
+  })
   profileImage?: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Enable/disable notifications' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Enable/disable notifications',
+  })
   notificationEnabled?: boolean;
 }

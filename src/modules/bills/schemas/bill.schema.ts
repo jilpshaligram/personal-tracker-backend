@@ -8,11 +8,13 @@ import {
   UpdatedAt,
   ForeignKey,
   BelongsTo,
+  HasMany,
 } from 'sequelize-typescript';
 import { BillStatus } from '../enums/bill-status.enum';
 import { RecurringType } from '../enums/recurring-type.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
 import { User } from '../../users/schemas/user.schema';
+import { BillHistory } from '../../bill-history/schemas/bill-history.schema';
 
 @Table({
   tableName: 'bills',
@@ -101,6 +103,15 @@ export class Bill extends Model {
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare notes: string | null;
+
+  @Column({ type: DataType.DECIMAL(10, 2), defaultValue: 0, allowNull: false })
+  declare paidAmount: number;
+
+  @Column({ type: DataType.DECIMAL(10, 2), allowNull: true })
+  declare remainingAmount: number | null;
+
+  @HasMany(() => BillHistory, 'billId')
+  declare paymentHistory: BillHistory[];
 
   @CreatedAt
   declare createdAt: Date;

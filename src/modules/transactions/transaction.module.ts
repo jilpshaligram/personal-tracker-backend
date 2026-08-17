@@ -19,6 +19,6 @@ import { SecurityModule } from '../../infrastructure/security/security.module';
   ],
   controllers: [TransactionController],
   providers: [TransactionService, TransactionRepository],
-  exports: [TransactionService],
+  exports: [TransactionService, TransactionRepository],
 })
 export class TransactionModule {}

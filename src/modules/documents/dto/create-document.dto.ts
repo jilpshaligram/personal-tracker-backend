@@ -24,7 +24,10 @@ export const createDocumentSchema = z.object({
 export type CreateDocumentDtoInput = z.infer<typeof createDocumentSchema>;
 
 export class CreateDocumentDto {
-  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Document Category UUID' })
+  @ApiProperty({
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    description: 'Document Category UUID',
+  })
   @IsString()
   @IsNotEmpty()
   categoryId: string;
@@ -34,7 +37,10 @@ export class CreateDocumentDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: '2028-12-31', description: 'Expiry date (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2028-12-31',
+    description: 'Expiry date (YYYY-MM-DD)',
+  })
   @IsDateString()
   @IsNotEmpty()
   expiryDate: string;
