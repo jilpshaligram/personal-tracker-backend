@@ -121,4 +121,96 @@ export class BudgetRepository {
       );
     }
   }
+
+  // async getCategoryBreakdown(budget: Budget, userId: string) {
+  //   try {
+  //     return await this.budgetModel.sequelize!.models.Transaction.findAll({
+  //       attributes: [
+  //         'categoryId',
+  //         [
+  //           this.budgetModel.sequelize!.fn(
+  //             'SUM',
+  //             this.budgetModel.sequelize!.col('amount'),
+  //           ),
+  //           'totalAmount',
+  //         ],
+  //       ],
+  //       where: {
+  //         userId,
+  //         type: 'EXPENSE',
+  //         transactionDate: {
+  //           [Op.gte]: budget.startDate,
+  //           [Op.lte]: budget.endDate,
+  //         },
+  //       },
+  //       group: ['categoryId', 'category.id'],
+  //       include: [
+  //         {
+  //           model: this.budgetModel.sequelize!.models.Category,
+  //           as: 'category',
+  //           attributes: ['id', 'name'],
+  //         },
+  //       ],
+  //       raw: true,
+  //     });
+  //   } catch (error: unknown) {
+  //     throw new InternalServerErrorException(
+  //       'Error fetching category breakdown',
+  //       { description: error instanceof Error ? error.message : String(error) },
+  //     );
+  //   }
+  // }
+
+  async findLatestActiveBudgets(userId: string): Promise<Budget[]> {
+    try {
+      return await this.budgetModel.findAll({
+        where: { userId, isActive: true },
+        order: [['startDate', 'DESC']],
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error fetching latest budgets', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async getSpentAmountForBudget(
+    userId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<number> {
+    try {
+      const result =
+        await this.budgetModel.sequelize!.models.Transaction.findAll({
+          attributes: [
+            [
+              this.budgetModel.sequelize!.fn(
+                'SUM',
+                this.budgetModel.sequelize!.col('amount'),
+              ),
+              'total',
+            ],
+          ],
+          where: {
+            userId,
+            type: 'EXPENSE',
+            transactionDate: {
+              [Op.gte]: startDate,
+              [Op.lte]: endDate,
+            },
+          },
+          raw: true,
+        });
+
+      const totalSpent = result.length
+        ? parseFloat((result[0] as unknown as { total: string }).total)
+        : 0;
+      return isNaN(totalSpent) ? 0 : totalSpent;
+    } catch (error: unknown) {
+      throw new InternalServerErrorException(
+        'Error fetching spent amount for budget',
+        { description: error instanceof Error ? error.message : String(error) },
+      );
+    }
+  }
 }

@@ -191,18 +191,9 @@ export class TransactionService {
         }
 
         case TransactionType.OPENING_BALANCE: {
-          // Check if OPENING_BALANCE already exists
-          const existingTransactions =
-            await this.transactionRepository.findAllByUserId(userId);
-          const hasOpeningBalance = existingTransactions.some(
-            (tr) => tr.type === TransactionType.OPENING_BALANCE,
+          throw new BadRequestException(
+            'Opening balance must be set via /transactions/opening-balance endpoint',
           );
-          if (hasOpeningBalance) {
-            throw new ConflictException('Opening balance already exists');
-          }
-
-          newCurrentBalance += dto.amount;
-          break;
         }
 
         default:
@@ -227,6 +218,68 @@ export class TransactionService {
       );
 
       return transaction;
+    });
+  }
+
+  async setOpeningBalance(userId: string, amount: number) {
+    return this.sequelize.transaction(async (t: SequelizeTransaction) => {
+      const wallet = await this.walletRepository.findByUserIdForUpdate(
+        userId,
+        t,
+      );
+      if (!wallet) {
+        throw new NotFoundException('Wallet not found');
+      }
+
+      // 1. Initial check (we also rely on the DB unique constraint)
+      const existingTransactions =
+        await this.transactionRepository.findAllByUserId(userId);
+      const hasOpeningBalance = existingTransactions.some(
+        (tr) => tr.type === TransactionType.OPENING_BALANCE,
+      );
+      if (hasOpeningBalance) {
+        throw new ConflictException('Opening balance already exists');
+      }
+
+      const newCurrentBalance = Number(wallet.currentBalance) + amount;
+      const newBlockedAmount = Number(wallet.blockedAmount);
+
+      // 2. Update wallet
+      await this.walletRepository.update(
+        wallet.id,
+        {
+          currentBalance: newCurrentBalance,
+          blockedAmount: newBlockedAmount,
+        } as Record<string, any>,
+        t,
+      );
+
+      // 3. Create OPENING_BALANCE transaction
+      try {
+        const transaction = await this.transactionRepository.create(
+          userId,
+          {
+            wallet_id: wallet.id,
+            category_id: null,
+            saving_goal_id: null,
+            type: TransactionType.OPENING_BALANCE,
+            amount,
+            payment_method: null,
+            note: 'Initial opening balance',
+            transaction_date: new Date().toISOString().split('T')[0],
+          },
+          t,
+        );
+        return transaction;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.name === 'SequelizeUniqueConstraintError'
+        ) {
+          throw new ConflictException('Opening balance already exists');
+        }
+        throw error;
+      }
     });
   }
 
