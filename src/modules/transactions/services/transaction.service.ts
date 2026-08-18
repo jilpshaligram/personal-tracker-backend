@@ -3,7 +3,6 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
-  ConflictException,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/sequelize';
 import { Sequelize, Transaction as SequelizeTransaction } from 'sequelize';
@@ -15,6 +14,9 @@ import { CategoriesRepository } from '../../categories/repositories/categories.r
 import { SavingGoalService } from '../../saving-goals/services/saving-goal.service';
 import { CategoryTransactionType } from '../../categories/enums/category-transaction-type.enum';
 import { SavingGoalStatus } from '../../saving-goals/enums/saving-goal-status.enum';
+import { QueryTransactionDto } from '../dto/query-transaction.dto';
+import { QueryHelper } from '../../../common/helpers/query.helper';
+import { TRANSACTION_QUERY_FIELDS } from '../constants/transaction-query-fields';
 
 @Injectable()
 export class TransactionService {
@@ -192,7 +194,7 @@ export class TransactionService {
 
         case TransactionType.OPENING_BALANCE: {
           throw new BadRequestException(
-            'Opening balance must be set via /transactions/opening-balance endpoint',
+            'Opening balance transactions are no longer supported',
           );
         }
 
@@ -221,70 +223,46 @@ export class TransactionService {
     });
   }
 
-  async setOpeningBalance(userId: string, amount: number) {
-    return this.sequelize.transaction(async (t: SequelizeTransaction) => {
-      const wallet = await this.walletRepository.findByUserIdForUpdate(
-        userId,
-        t,
-      );
-      if (!wallet) {
-        throw new NotFoundException('Wallet not found');
-      }
+  async findAll(userId: string, query: QueryTransactionDto) {
+    const queryResult = QueryHelper.build(query, TRANSACTION_QUERY_FIELDS);
 
-      // 1. Initial check (we also rely on the DB unique constraint)
-      const existingTransactions =
-        await this.transactionRepository.findAllByUserId(userId);
-      const hasOpeningBalance = existingTransactions.some(
-        (tr) => tr.type === TransactionType.OPENING_BALANCE,
-      );
-      if (hasOpeningBalance) {
-        throw new ConflictException('Opening balance already exists');
-      }
+    const { count, rows } = await this.transactionRepository.findAllPaginated(
+      userId,
+      queryResult,
+      query,
+    );
 
-      const newCurrentBalance = Number(wallet.currentBalance) + amount;
-      const newBlockedAmount = Number(wallet.blockedAmount);
+    const mappedTransactions = rows.map((tx) => {
+      const currentBalance = tx.wallet?.currentBalance ?? 0;
+      const blockedAmount = tx.wallet?.blockedAmount ?? 0;
 
-      // 2. Update wallet
-      await this.walletRepository.update(
-        wallet.id,
-        {
-          currentBalance: newCurrentBalance,
-          blockedAmount: newBlockedAmount,
-        } as Record<string, any>,
-        t,
-      );
-
-      // 3. Create OPENING_BALANCE transaction
-      try {
-        const transaction = await this.transactionRepository.create(
-          userId,
-          {
-            wallet_id: wallet.id,
-            category_id: null,
-            saving_goal_id: null,
-            type: TransactionType.OPENING_BALANCE,
-            amount,
-            payment_method: null,
-            note: 'Initial opening balance',
-            transaction_date: new Date().toISOString().split('T')[0],
-          },
-          t,
-        );
-        return transaction;
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          error.name === 'SequelizeUniqueConstraintError'
-        ) {
-          throw new ConflictException('Opening balance already exists');
-        }
-        throw error;
-      }
+      return {
+        amount: Number(tx.amount),
+        type: tx.type,
+        categoryName: tx.category?.name || 'N/A',
+        currentBalance: Number(currentBalance),
+        blockedAmount: Number(blockedAmount),
+        availableBalance: Number(currentBalance) - Number(blockedAmount),
+        savingGoalTitle: tx.savingGoal?.title || 'N/A',
+        transactionDate: tx.transactionDate,
+        paymentMethod: tx.paymentMethod || 'N/A',
+        note: tx.note || 'N/A',
+      };
     });
-  }
 
-  async findAll(userId: string) {
-    return this.transactionRepository.findAllByUserId(userId);
+    const totalPages = Math.ceil(count / queryResult.limit);
+
+    return {
+      transactions: mappedTransactions,
+      pagination: {
+        total: count,
+        page: queryResult.page,
+        limit: queryResult.limit,
+        totalPages,
+        hasNext: queryResult.page < totalPages,
+        hasPrevious: queryResult.page > 1,
+      },
+    };
   }
 
   async findOne(id: string, userId: string) {

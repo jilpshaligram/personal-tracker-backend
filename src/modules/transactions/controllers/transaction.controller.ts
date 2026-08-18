@@ -21,12 +21,11 @@ import {
   createTransactionSchema,
   CreateTransactionDto,
 } from '../dto/create-transaction.dto';
-import {
-  OpeningBalanceDto,
-  openingBalanceSchema,
-} from '../dto/opening-balance.dto';
+
 import { Request } from 'express';
 import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import { Query } from '@nestjs/common';
+import { QueryTransactionDto } from '../dto/query-transaction.dto';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -38,8 +37,7 @@ export class TransactionController {
   @Post()
   @ApiOperation({
     summary: 'Create Transaction',
-    description:
-      'Creates an income, expense, opening balance, or transfer transaction.',
+    description: 'Creates an income, expense, or transfer transaction.',
   })
   @ApiResponse({
     status: 201,
@@ -64,38 +62,6 @@ export class TransactionController {
     };
   }
 
-  @Post('opening-balance')
-  @ApiOperation({
-    summary: 'Set opening balance',
-    description:
-      'Initializes the wallet with an opening balance. Can only be performed once per user.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Opening balance set successfully.',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Opening balance has already been set.',
-  })
-  async setOpeningBalance(
-    @Req() req: Request & { user: IJwtPayload },
-    @Body(new ZodValidationPipe(openingBalanceSchema))
-    openingBalanceDto: OpeningBalanceDto,
-  ) {
-    const userId = req.user.sub;
-    const transaction = await this.transactionService.setOpeningBalance(
-      userId,
-      openingBalanceDto.amount,
-    );
-
-    return {
-      success: true,
-      message: 'Opening balance set successfully',
-      data: transaction,
-    };
-  }
-
   @Get()
   @ApiOperation({
     summary: 'Get All Transactions',
@@ -106,9 +72,12 @@ export class TransactionController {
     status: 200,
     description: 'Transactions retrieved successfully.',
   })
-  async findAll(@Req() req: Request & { user: IJwtPayload }) {
+  async findAll(
+    @Req() req: Request & { user: IJwtPayload },
+    @Query() query: QueryTransactionDto,
+  ) {
     const userId = req.user.sub;
-    const transactions = await this.transactionService.findAll(userId);
+    const transactions = await this.transactionService.findAll(userId, query);
 
     return {
       success: true,
