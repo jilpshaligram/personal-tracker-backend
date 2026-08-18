@@ -13,6 +13,7 @@ import { PaymentMethod } from '../enums/payment-method.enum';
 import { Category } from '../../categories/schemas/category.schema';
 import { User } from '../../users/schemas/user.schema';
 import { SavingGoal } from '../../saving-goals/schemas/saving-goal.schema';
+import { Wallet } from '../../wallets/schemas/wallet.schema';
 import { TransactionType } from '../enums/transaction-type.enum';
 import { ITransaction } from '../interfaces/transaction.interface';
 
@@ -83,6 +84,7 @@ export class Transaction
   declare type: TransactionType;
 
   @AllowNull(false)
+  @ForeignKey(() => Wallet)
   @Column({ type: DataType.UUID, field: 'wallet_id' })
   declare walletId: string;
 
@@ -140,6 +142,12 @@ export class Transaction
     as: 'savingGoal',
   })
   declare savingGoal: SavingGoal;
+
+  @BelongsTo(() => Wallet, {
+    foreignKey: 'walletId',
+    as: 'wallet',
+  })
+  declare wallet: Wallet;
 
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
