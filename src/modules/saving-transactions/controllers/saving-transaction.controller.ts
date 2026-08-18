@@ -34,7 +34,7 @@ import {
 } from '../dto/update-saving-transaction.dto';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { QuerySavingTransactionDto } from '../dto/query-saving-transaction.dto';
-import { AuthGuard } from 'src/common/guards/auth.guard';
+import { AuthGuard } from '../../../common/guards/auth.guard';
 
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;

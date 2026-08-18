@@ -106,7 +106,8 @@ export class UsersController {
     summary: 'Update my profile',
     description:
       'Accepts multipart/form-data OR application/json. ' +
-      'email and phone cannot be changed here — they require a separate verification flow.',
+      'email and phone cannot be changed here — they require a separate verification flow. ' +
+      'Pass profileImage as null or empty string to remove existing profile image.',
   })
   @ApiBody({
     schema: {
@@ -120,7 +121,7 @@ export class UsersController {
           type: 'string',
           format: 'binary',
           description:
-            'Upload an image file (max 5 MB). Ignored if sending JSON with profileImage URL.',
+            'Upload an image file (max 5 MB) or pass URL / null / empty string to remove.',
         },
         notificationEnabled: { type: 'boolean' },
       },
@@ -137,7 +138,7 @@ export class UsersController {
     // If a file was uploaded, push it to Cloudinary and use the secure URL
     let profileImageUrl: string | undefined;
     if (file) {
-      const result = await this.cloudinaryService.uploadFile(file);
+      const result = await this.cloudinaryService.uploadFile(file, 'profiles');
       profileImageUrl = result.secure_url;
     }
 
@@ -149,6 +150,9 @@ export class UsersController {
 
     const parsed = updateProfileSchema.safeParse(payload);
     if (!parsed.success) {
+      if (file && profileImageUrl) {
+        await this.cloudinaryService.deleteByUrl(profileImageUrl);
+      }
       throw new BadRequestException({
         success: false,
         message: 'Validation failed',
@@ -157,6 +161,17 @@ export class UsersController {
           message: e.message,
         })),
       });
+    }
+
+    // If profile image is being updated or removed, delete old image from Cloudinary
+    if (parsed.data.profileImage !== undefined) {
+      const currentUser = await this.usersService.findById(req.user.sub);
+      if (
+        currentUser?.profileImage &&
+        currentUser.profileImage !== parsed.data.profileImage
+      ) {
+        await this.cloudinaryService.deleteByUrl(currentUser.profileImage);
+      }
     }
 
     const updated = await this.usersService.updateUser(
@@ -303,6 +318,15 @@ export class UsersController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
   ) {
+    if (dto.profileImage !== undefined) {
+      const existingUser = await this.usersService.findById(id);
+      if (
+        existingUser?.profileImage &&
+        existingUser.profileImage !== dto.profileImage
+      ) {
+        await this.cloudinaryService.deleteByUrl(existingUser.profileImage);
+      }
+    }
     const updated = await this.usersService.updateUser(id, dto);
     return successResponse('User updated successfully.', {
       user: this.usersService.toSafeUser(updated),

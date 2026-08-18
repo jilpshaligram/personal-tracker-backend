@@ -8,13 +8,14 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { SecurityService } from '../../infrastructure/security/security.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly securityService: SecurityService,
     private readonly reflector: Reflector,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -26,18 +27,21 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    const cookieToken = (request.cookies as Record<string, string>)?.[
-      'access_token'
-    ];
-    const authHeader = request.headers['authorization'];
-    const bearerToken =
-      authHeader && authHeader.startsWith('Bearer ')
-        ? authHeader.split(' ')[1]
-        : null;
+    const authHeader = request.headers.authorization;
 
-    const token = cookieToken ?? bearerToken;
+    const cookies = request.cookies as Record<string, string> | undefined;
+
+
+    let token: string | undefined;
+
+
+    if (!token) {
+      const cookies = (request.cookies as Record<string, string> | undefined);
+
+      token = cookies?.access_token ?? cookies?.accessToken;
+    }
 
     if (!token) {
       throw new UnauthorizedException({
