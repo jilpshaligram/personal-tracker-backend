@@ -92,4 +92,102 @@ export class BudgetService {
     await this.findOne(id, userId); // Ensure it exists and belongs to user
     await this.budgetRepository.softDelete(id, userId);
   }
+
+  // async getCategoryBreakdown(id: string, userId: string) {
+  //   const budget = await this.findOne(id, userId);
+  //   const rawBreakdown = await this.budgetRepository.getCategoryBreakdown(
+  //     budget,
+  //     userId,
+  //   );
+
+  //   let spentAmount = 0;
+  //   const categories = rawBreakdown.map((item: any) => {
+  //     const amount = parseFloat(item.totalAmount) || 0;
+  //     spentAmount += amount;
+
+  //     return {
+  //       categoryId: item.categoryId,
+  //       categoryName: item['category.name'] || 'Unknown Category',
+  //       amount: amount,
+  //     };
+  //   });
+
+  //   return {
+  //     budgetAmount:
+  //       typeof budget.amount === 'string'
+  //         ? parseFloat(budget.amount)
+  //         : budget.amount,
+  //     spentAmount: spentAmount,
+  //     categories,
+  //   };
+  // }
+
+  async getDashboardOverview(userId: string) {
+    const allActiveBudgets =
+      await this.budgetRepository.findLatestActiveBudgets(userId);
+
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    const validActiveBudgets: typeof allActiveBudgets = [];
+    for (const budget of allActiveBudgets) {
+      const endDate = new Date(budget.endDate);
+      if (endDate < currentDate) {
+        await this.budgetRepository.update(budget.id, userId, {
+          isActive: false,
+        } as unknown as UpdateBudgetDto);
+      } else {
+        validActiveBudgets.push(budget);
+      }
+    }
+
+    // Keep only the first budget we encounter for each period (since ordered by startDate DESC, it's the latest)
+    const latestBudgetsMap = new Map<string, (typeof allActiveBudgets)[0]>();
+    for (const budget of validActiveBudgets) {
+      if (!latestBudgetsMap.has(budget.period)) {
+        latestBudgetsMap.set(budget.period, budget);
+      }
+    }
+
+    const latestBudgets = Array.from(latestBudgetsMap.values());
+
+    const overviewItems = await Promise.all(
+      latestBudgets.map(async (budget) => {
+        const spentAmount = await this.budgetRepository.getSpentAmountForBudget(
+          userId,
+          budget.startDate,
+          budget.endDate,
+        );
+
+        const budgetAmount =
+          typeof budget.amount === 'string'
+            ? parseFloat(budget.amount)
+            : budget.amount;
+
+        const safeBudgetAmount = isNaN(budgetAmount) ? 0 : budgetAmount;
+
+        const remainingAmount = Math.max(safeBudgetAmount - spentAmount, 0);
+
+        let percentageSpent = 0;
+        if (safeBudgetAmount > 0) {
+          percentageSpent = Number(
+            ((spentAmount / safeBudgetAmount) * 100).toFixed(2),
+          );
+        }
+
+        return {
+          budgetId: budget.id,
+          period: budget.period,
+          budgetAmount: safeBudgetAmount,
+          spentAmount,
+          remainingAmount,
+          percentageSpent,
+          startDate: budget.startDate,
+          endDate: budget.endDate,
+        };
+      }),
+    );
+
+    return { budgets: overviewItems };
+  }
 }

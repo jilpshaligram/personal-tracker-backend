@@ -21,6 +21,10 @@ import {
   createTransactionSchema,
   CreateTransactionDto,
 } from '../dto/create-transaction.dto';
+import {
+  OpeningBalanceDto,
+  openingBalanceSchema,
+} from '../dto/opening-balance.dto';
 import { Request } from 'express';
 import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 
@@ -56,6 +60,38 @@ export class TransactionController {
     return {
       success: true,
       message: 'Transaction created successfully',
+      data: transaction,
+    };
+  }
+
+  @Post('opening-balance')
+  @ApiOperation({
+    summary: 'Set opening balance',
+    description:
+      'Initializes the wallet with an opening balance. Can only be performed once per user.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Opening balance set successfully.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Opening balance has already been set.',
+  })
+  async setOpeningBalance(
+    @Req() req: Request & { user: IJwtPayload },
+    @Body(new ZodValidationPipe(openingBalanceSchema))
+    openingBalanceDto: OpeningBalanceDto,
+  ) {
+    const userId = req.user.sub;
+    const transaction = await this.transactionService.setOpeningBalance(
+      userId,
+      openingBalanceDto.amount,
+    );
+
+    return {
+      success: true,
+      message: 'Opening balance set successfully',
       data: transaction,
     };
   }

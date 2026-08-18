@@ -67,6 +67,44 @@ export class BudgetController {
     return successResponse('Budgets fetched successfully.', { budgets });
   }
 
+  @Get('dashboard-overview')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get dashboard budget overview',
+    description:
+      'Retrieves the latest budget overview including spent and remaining amounts for all periods.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget overview fetched successfully.',
+  })
+  async getDashboardOverview(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.sub;
+    const data = await this.budgetService.getDashboardOverview(userId);
+    return successResponse('Budget overview fetched successfully', data);
+  }
+
+  // @Get(':id/category-breakdown')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({
+  //   summary: 'Get category breakdown',
+  //   description:
+  //     'Retrieves aggregated expense breakdown for a specific budget period.',
+  // })
+  // @ApiParam({ name: 'id', description: 'Budget UUID' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Category breakdown fetched successfully.',
+  // })
+  // async getCategoryBreakdown(
+  //   @Param('id') id: string,
+  //   @Req() req: AuthenticatedRequest,
+  // ) {
+  //   const userId = req.user.sub;
+  //   const data = await this.budgetService.getCategoryBreakdown(id, userId);
+  //   return successResponse('Category breakdown fetched successfully', data);
+  // }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
