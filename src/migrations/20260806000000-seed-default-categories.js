@@ -32,7 +32,6 @@ module.exports = {
       'Health',
       'Education',
       'Gift',
-      'Other'
     ];
 
     const incomeNames = [
@@ -44,7 +43,6 @@ module.exports = {
       'Interest',
       'Rental Income',
       'Refund',
-      'Other'
     ];
 
     const expenseCategories = expenseNames.map(name => ({
