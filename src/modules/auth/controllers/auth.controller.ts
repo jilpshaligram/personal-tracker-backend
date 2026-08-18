@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -20,6 +21,7 @@ import { AuthService } from '../services/auth.service';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 import { AuthGuard } from '../../../common/guards/auth.guard';
+import { AccessTokenGuard } from '../../../common/guards/access-token.guard';
 import { Public } from '../../../common/decorators/public.decorator';
 import type { IJwtPayload } from '../interfaces/jwt-payload.interface';
 
@@ -353,5 +355,22 @@ export class AuthController {
   async resetPin(@Body() dto: ResetPinDto) {
     await this.authService.resetPin(dto);
     return successResponse('PIN reset successfully.');
+  }
+
+  @Get('verify-token')
+  @Public()
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Verify access token and return user details' })
+  @ApiResponse({ status: 200, description: 'Token is valid' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired access token',
+  })
+  verifyToken(@Req() req: Request) {
+    return successResponse('Token is valid.', {
+      user: (req as Request & { user?: unknown }).user,
+    });
   }
 }

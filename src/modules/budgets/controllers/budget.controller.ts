@@ -25,7 +25,7 @@ import { successResponse } from '../../../common/responses/api-response.helper';
 import { createBudgetSchema, CreateBudgetDto } from '../dto/create-budget.dto';
 import { updateBudgetSchema, UpdateBudgetDto } from '../dto/update-budget.dto';
 import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
-import { AuthGuard } from 'src/common/guards/auth.guard';
+import { AuthGuard } from '../../../common/guards/auth.guard';
 interface AuthenticatedRequest extends Request {
   user: IJwtPayload;
 }

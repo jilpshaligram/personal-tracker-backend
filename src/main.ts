@@ -64,12 +64,12 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
       tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
+      operationsSorter: 'alpha'
     },
     customSiteTitle: 'Personal Tracker API Docs',
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3001);
 }
 
 void bootstrap();

@@ -8,6 +8,7 @@ import { SecurityModule } from '../../infrastructure/security/security.module';
 import { MailModule } from '../../infrastructure/mail/mail.module';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { OnboardingGuard } from '../../common/guards/onboarding.guard';
+import { AccessTokenGuard } from '../../common/guards/access-token.guard';
 
 @Module({
   imports: [
@@ -18,7 +19,13 @@ import { OnboardingGuard } from '../../common/guards/onboarding.guard';
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard, OnboardingGuard],
-  exports: [AuthService, AuthGuard, OnboardingGuard, SecurityModule],
+  providers: [AuthService, AuthGuard, OnboardingGuard, AccessTokenGuard],
+  exports: [
+    AuthService,
+    AuthGuard,
+    OnboardingGuard,
+    AccessTokenGuard,
+    SecurityModule,
+  ],
 })
 export class AuthModule {}
