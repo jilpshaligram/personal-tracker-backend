@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
@@ -14,8 +14,10 @@ import mailConfig from './config/mail.config';
 import swaggerConfig from './config/swagger.config';
 import throttlerConfig from './config/throttler.config';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { LoggerModule } from './infrastructure/logging/logger.module';
 import { SecurityModule } from './infrastructure/security/security.module';
 import { AuthGuard } from './common/guards/auth.guard';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuthModule } from './modules/auth';
 import { AuditLogsModule } from './modules/audit-logs';
 import { BillHistoryModule } from './modules/bill-history';
@@ -24,11 +26,8 @@ import { BudgetsModule } from './modules/budgets';
 import { DashboardModule } from './modules/dashboard';
 import { DocumentCategoryModule } from './modules/document-category';
 import { DocumentModule } from './modules/documents';
-import { ExpenseCategoryModule } from './modules/expense-category';
-import { IncomeCategoryModule } from './modules/income-category';
 import { NotificationsModule } from './modules/notifications';
 import { OtpModule } from './modules/otp';
-import { ReportsModule } from './modules/reports';
 import { SavingGoalsModule } from './modules/saving-goals';
 import { SavingTransactionsModule } from './modules/saving-transactions';
 import { TransactionModule } from './modules/transactions';
@@ -54,6 +53,7 @@ import { WalletsModule } from './modules/wallets/wallets.module';
       validate,
     }),
     DatabaseModule,
+    LoggerModule,
     SecurityModule,
     ScheduleModule.forRoot(),
     AuthModule,
@@ -65,8 +65,6 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     CategoriesModule,
     DocumentCategoryModule,
     DocumentModule,
-    IncomeCategoryModule,
-    ExpenseCategoryModule,
     BudgetsModule,
     BillsModule,
     BillHistoryModule,
@@ -75,7 +73,6 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     NotificationsModule,
     AuditLogsModule,
     DashboardModule,
-    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -83,6 +80,10 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })

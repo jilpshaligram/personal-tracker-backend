@@ -19,8 +19,22 @@ export const updateUserSchema = z.object({
       message: 'Gender must be MALE, FEMALE, or OTHER',
     })
     .optional(),
-  profileImage: z.string().url('Profile image must be a valid URL').optional(),
-  notificationEnabled: z.boolean().optional(),
+  profileImage: z
+    .union([
+      z.string().url('Profile image must be a valid URL'),
+      z.literal(''),
+      z.literal('null'),
+      z.null(),
+    ])
+    .nullable()
+    .optional()
+    .transform((val) => (val === '' || val === 'null' ? null : val)),
+  notificationEnabled: z
+    .union([
+      z.boolean(),
+      z.string().transform((v) => v === 'true' || v === '1'),
+    ])
+    .optional(),
 });
 
 export class UpdateUserDto {
@@ -48,9 +62,10 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     example: 'https://example.com/avatar.jpg',
-    description: 'Profile image URL',
+    description: 'Profile image URL, empty string, or null to remove the image',
+    nullable: true,
   })
-  profileImage?: string;
+  profileImage?: string | null;
 
   @ApiPropertyOptional({
     example: true,

@@ -20,6 +20,7 @@ export const apiResponse = {
     success: true,
     message,
     ...(data !== undefined && { data }),
+
     ...(pagination !== undefined && { pagination }),
   }),
   error: (message: string, errors: unknown[] = []) => ({

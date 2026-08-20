@@ -6,6 +6,8 @@ import {
   Body,
   UseGuards,
   Req,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,8 +23,17 @@ import {
   createTransactionSchema,
   CreateTransactionDto,
 } from '../dto/create-transaction.dto';
-import { Request } from 'express';
-import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import {
+  updateTransactionSchema,
+  UpdateTransactionDto,
+} from '../dto/update-transaction.dto';
+
+import { Query } from '@nestjs/common';
+import { QueryTransactionDto } from '../dto/query-transaction.dto';
+import type {
+  AuthenticatedRequest,
+  IJwtPayload,
+} from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -34,8 +45,7 @@ export class TransactionController {
   @Post()
   @ApiOperation({
     summary: 'Create Transaction',
-    description:
-      'Creates an income, expense, opening balance, or transfer transaction.',
+    description: 'Creates an income, expense, or transfer transaction.',
   })
   @ApiResponse({
     status: 201,
@@ -43,7 +53,7 @@ export class TransactionController {
   })
   @ApiResponse({ status: 400, description: 'Validation error.' })
   async create(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(createTransactionSchema))
     createTransactionDto: CreateTransactionDto,
   ) {
@@ -70,9 +80,12 @@ export class TransactionController {
     status: 200,
     description: 'Transactions retrieved successfully.',
   })
-  async findAll(@Req() req: Request & { user: IJwtPayload }) {
+  async findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: QueryTransactionDto,
+  ) {
     const userId = req.user.sub;
-    const transactions = await this.transactionService.findAll(userId);
+    const transactions = await this.transactionService.findAll(userId, query);
 
     return {
       success: true,
@@ -92,10 +105,7 @@ export class TransactionController {
     description: 'Transaction retrieved successfully.',
   })
   @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  async findOne(
-    @Param('id') id: string,
-    @Req() req: Request & { user: IJwtPayload },
-  ) {
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const transaction = await this.transactionService.findOne(id, userId);
 
@@ -104,5 +114,58 @@ export class TransactionController {
       message: 'Transaction retrieved successfully',
       data: transaction,
     };
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update Transaction',
+    description:
+      'Updates a transaction by ID and recalculates wallet balances securely.',
+  })
+  @ApiParam({ name: 'id', description: 'Transaction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction updated successfully.',
+  })
+  @ApiResponse({ status: 400, description: 'Validation error.' })
+  @ApiResponse({ status: 404, description: 'Transaction not found.' })
+  async update(
+    @Param('id') id: string,
+    @Req() req: Request & { user: IJwtPayload },
+    @Body(new ZodValidationPipe(updateTransactionSchema))
+    updateTransactionDto: UpdateTransactionDto,
+  ) {
+    const userId = req.user.sub;
+    const transaction = await this.transactionService.update(
+      id,
+      userId,
+      updateTransactionDto,
+    );
+
+    return {
+      success: true,
+      message: 'Transaction updated successfully',
+      data: transaction,
+    };
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete Transaction',
+    description:
+      'Deletes a transaction by ID and reverts its financial impact securely.',
+  })
+  @ApiParam({ name: 'id', description: 'Transaction UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction deleted successfully.',
+  })
+  @ApiResponse({ status: 404, description: 'Transaction not found.' })
+  async remove(
+    @Param('id') id: string,
+    @Req() req: Request & { user: IJwtPayload },
+  ) {
+    const userId = req.user.sub;
+    return this.transactionService.remove(id, userId);
   }
 }

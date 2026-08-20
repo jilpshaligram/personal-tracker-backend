@@ -8,4 +8,6 @@ export interface QueryOptions {
   defaultSortBy?: string;
 
   defaultSortOrder?: 'ASC' | 'DESC';
+
+  dateField?: string;
 }

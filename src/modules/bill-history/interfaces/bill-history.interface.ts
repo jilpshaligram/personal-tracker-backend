@@ -9,6 +9,7 @@ export enum BillHistoryStatus {
 export interface BillHistoryEntity {
   id: string;
   billId: string;
+  transactionId?: string | null;
   paymentDate: Date;
   amountPaid: number;
   paymentMethod: PaymentMethod;

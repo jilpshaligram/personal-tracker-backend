@@ -11,11 +11,7 @@ import { BillHistoryService } from '../services/bill-history.service';
 import { BillService } from '../../bills/services/bill.service';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
-
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Bill History')
 @ApiBearerAuth()
@@ -40,7 +36,6 @@ export class BillHistoryController {
   async findByBill(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     await this.billService.findOne(req.user.sub, id);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { data, pagination } = await this.billHistoryService.findByBill(id);
     return apiResponse.success(
       'Bill history fetched successfully',

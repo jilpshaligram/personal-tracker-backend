@@ -7,34 +7,60 @@ export const createBillSchema = z
     categoryId: z.string().uuid('Invalid category ID'),
     title: z
       .string()
-      .min(2, 'Title must be at least 2 characters')
+      .min(1, 'Title is required')
       .max(150, 'Title must be at most 150 characters'),
     description: z.string().optional(),
-    amount: z.number().positive('Amount must be greater than 0'),
-    dueDate: z.string().refine((date) => {
-      const d = new Date(date);
+    amount: z.coerce.number().positive('Amount must be greater than 0'),
+    dueDate: z.string().refine((dateStr) => {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      return d >= today;
+      const targetDate = new Date(d);
+      targetDate.setHours(0, 0, 0, 0);
+      return targetDate >= today;
     }, 'Due date cannot be in the past'),
-    isRecurring: z.boolean().default(false),
+    isRecurring: z.preprocess(
+      (val) => val === 'true' || val === true,
+      z.boolean().default(false),
+    ),
     recurringType: z.nativeEnum(RecurringType).optional(),
-    reminderDaysBefore: z
-      .array(
-        z.number().refine((val) => [1, 3, 7, 14, 30].includes(val), {
-          message: 'Reminder days must be one of: 1, 3, 7, 14, 30',
-        }),
-      )
-      .default([]),
-    attachment: z
-      .object({
-        url: z.string().url(),
-        publicId: z.string(),
-        fileName: z.string(),
-        mimeType: z.string(),
-        size: z.number(),
-      })
-      .optional(),
+    reminderDaysBefore: z.preprocess(
+      (val) => {
+        if (typeof val === 'string') {
+          try {
+            const parsed: unknown = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {
+            return val.split(',').map((v) => parseInt(v.trim(), 10));
+          }
+        }
+        return val;
+      },
+      z
+        .array(
+          z.coerce.number().refine((val) => [1, 3, 7, 14, 30].includes(val), {
+            message: 'Reminder days must be one of: 1, 3, 7, 14, 30',
+          }),
+        )
+        .default([]),
+    ),
+    attachment: z.preprocess(
+      (val) =>
+        val && typeof val === 'object' && Object.keys(val).length === 0
+          ? undefined
+          : val,
+      z
+        .object({
+          url: z.string().url(),
+          publicId: z.string(),
+          fileName: z.string(),
+          mimeType: z.string(),
+          size: z.coerce.number(),
+        })
+        .optional()
+        .nullable(),
+    ),
     notes: z.string().optional(),
   })
   .refine(
@@ -99,7 +125,7 @@ export class CreateBillDto {
     fileName: string;
     mimeType: string;
     size: number;
-  };
+  } | null;
 
   @ApiPropertyOptional({
     example: 'Account #12345',

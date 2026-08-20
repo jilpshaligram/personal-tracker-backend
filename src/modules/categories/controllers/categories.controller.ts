@@ -29,8 +29,7 @@ import {
 } from '../dto/update-category.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
-import { Request } from 'express';
-import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Categories')
 @ApiBearerAuth()
@@ -46,7 +45,7 @@ export class CategoriesController {
   })
   @ApiResponse({ status: 201, description: 'Category created successfully.' })
   async create(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(createCategorySchema))
     createCategoryDto: CreateCategoryDto,
   ) {
@@ -73,7 +72,7 @@ export class CategoriesController {
     description: 'Categories retrieved successfully.',
   })
   async findAll(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Query('type') type?: CategoryTransactionType,
   ) {
     const userId = req.user.sub;
@@ -96,10 +95,7 @@ export class CategoriesController {
   })
   @ApiParam({ name: 'id', description: 'Category UUID' })
   @ApiResponse({ status: 200, description: 'Category retrieved successfully.' })
-  async findOne(
-    @Param('id') id: string,
-    @Req() req: Request & { user: IJwtPayload },
-  ) {
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const category = await this.categoriesService.findOne(id, userId);
 
@@ -120,7 +116,7 @@ export class CategoriesController {
   @ApiResponse({ status: 200, description: 'Category updated successfully.' })
   async update(
     @Param('id') id: string,
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(updateCategorySchema))
     updateCategoryDto: UpdateCategoryDto,
   ) {
@@ -146,10 +142,7 @@ export class CategoriesController {
   })
   @ApiParam({ name: 'id', description: 'Category UUID' })
   @ApiResponse({ status: 200, description: 'Category deleted successfully.' })
-  async remove(
-    @Param('id') id: string,
-    @Req() req: Request & { user: IJwtPayload },
-  ) {
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     await this.categoriesService.remove(id, userId);
 

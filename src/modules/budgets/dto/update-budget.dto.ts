@@ -14,16 +14,4 @@ export class UpdateBudgetDto {
     description: 'Budget period',
   })
   period?: BudgetPeriod;
-
-  @ApiPropertyOptional({
-    example: '2026-08-01',
-    description: 'Start date (YYYY-MM-DD)',
-  })
-  startDate?: string;
-
-  @ApiPropertyOptional({
-    example: '2026-08-31',
-    description: 'End date (YYYY-MM-DD)',
-  })
-  endDate?: string;
 }

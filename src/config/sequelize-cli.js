@@ -12,9 +12,9 @@ module.exports = {
     port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
     dialectOptions: {
-      useUTC: false, // for reading from database
+      useUTC: false,
     },
-    timezone: '+05:30' // or depending on your needs
+    timezone: '+05:30'
   },
   test: {
     username: process.env.DB_USER,

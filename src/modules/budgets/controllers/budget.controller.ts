@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,17 +24,24 @@ import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 import { createBudgetSchema, CreateBudgetDto } from '../dto/create-budget.dto';
 import { updateBudgetSchema, UpdateBudgetDto } from '../dto/update-budget.dto';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import { AuthGuard } from '../../../common/guards/auth.guard';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
+import { BudgetAlertJob } from '../../../jobs/budget-alert.job';
+import { Public } from '../../../common/decorators/public.decorator';
 
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+// interface AuthenticatedRequest extends Request {
+//   user: IJwtPayload;
+// }
 
 @ApiTags('Budgets')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('budgets')
+@UseGuards(AuthGuard)
 export class BudgetController {
-  constructor(private readonly budgetService: BudgetService) {}
+  constructor(
+    private readonly budgetService: BudgetService,
+    private readonly budgetAlertJob: BudgetAlertJob,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -64,6 +72,44 @@ export class BudgetController {
     const budgets = await this.budgetService.findAll(userId);
     return successResponse('Budgets fetched successfully.', { budgets });
   }
+
+  @Get('dashboard-overview')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get dashboard budget overview',
+    description:
+      'Retrieves the latest budget overview including spent and remaining amounts for all periods.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget overview fetched successfully.',
+  })
+  async getDashboardOverview(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.sub;
+    const data = await this.budgetService.getDashboardOverview(userId);
+    return successResponse('Budget overview fetched successfully', data);
+  }
+
+  // @Get(':id/category-breakdown')
+  // @HttpCode(HttpStatus.OK)
+  // @ApiOperation({
+  //   summary: 'Get category breakdown',
+  //   description:
+  //     'Retrieves aggregated expense breakdown for a specific budget period.',
+  // })
+  // @ApiParam({ name: 'id', description: 'Budget UUID' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Category breakdown fetched successfully.',
+  // })
+  // async getCategoryBreakdown(
+  //   @Param('id') id: string,
+  //   @Req() req: AuthenticatedRequest,
+  // ) {
+  //   const userId = req.user.sub;
+  //   const data = await this.budgetService.getCategoryBreakdown(id, userId);
+  //   return successResponse('Category breakdown fetched successfully', data);
+  // }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
@@ -107,5 +153,22 @@ export class BudgetController {
     const userId = req.user.sub;
     await this.budgetService.remove(id, userId);
     return successResponse('Budget deleted successfully.');
+  }
+
+  // ── TEST ENDPOINTS (development only) ────────────────────────────────────────
+
+  @Post('test-alerts')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '[DEV] Manually trigger the budget alert scheduler',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduler triggered successfully.',
+  })
+  async testAlerts() {
+    await this.budgetAlertJob.triggerNow();
+    return successResponse('Budget alert check triggered. Check server logs.');
   }
 }
