@@ -9,6 +9,7 @@ import { SecurityService } from '../../infrastructure/security/security.service'
 import { User } from '../../modules/users/schemas/user.schema';
 import { UserStatus } from '../../modules/users/enums/user-status.enum';
 import { UserSession } from '../../modules/user-session/schemas/user-session.schema';
+import type { IJwtPayload } from '../interfaces/authenticated-request.interface';
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
@@ -56,22 +57,9 @@ export class AccessTokenGuard implements CanActivate {
       throw new UnauthorizedException('Access token is required');
     }
 
-    let payload;
+    let payload: IJwtPayload;
     try {
-<<<<<<< Updated upstream
-      const payload = await this.securityService.verifyAccessToken(accessToken);
-
-      (request as Request & { user: unknown }).user = {
-        id: payload.sub,
-        sub: payload.sub,
-        role: payload.role,
-        sessionId: payload.sessionId,
-      };
-
-      return true;
-=======
       payload = await this.securityService.verifyAccessToken(accessToken);
->>>>>>> Stashed changes
     } catch {
       this.clearAuthCookies(response);
       throw new UnauthorizedException('Invalid or expired access token');

@@ -267,7 +267,7 @@ export class TransactionService {
         categoryName: tx.category?.name || 'N/A',
         currentBalance: Number(currentBalance),
         blockedAmount: Number(blockedAmount),
-        availableBalance: Number(currentBalance) - Number(blockedAmount),
+        availableBalance: Number((currentBalance - blockedAmount).toFixed(2)),
         savingGoalTitle: tx.savingGoal?.title || 'N/A',
         transactionDate: tx.transactionDate,
         paymentMethod: tx.paymentMethod || 'N/A',
