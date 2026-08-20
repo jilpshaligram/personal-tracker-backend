@@ -13,16 +13,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Request } from 'express';
 import { AuditLogService } from '../services/audit-log.service';
 import { AuditLogFilterDto } from '../dto/audit-log-filter.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
-import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
-
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -47,13 +42,6 @@ export class AuditLogController {
     type: String,
     example: 'CREATE',
   })
-  @ApiQuery({
-    name: 'entityType',
-    required: false,
-    type: String,
-    example: 'Bill',
-  })
-  @ApiQuery({ name: 'entityId', required: false, type: String })
   @ApiQuery({
     name: 'dateFrom',
     required: false,
@@ -100,8 +88,6 @@ export class AuditLogController {
     try {
       const userId = req.user.sub;
 
-      // TODO: Implement admin user check
-      // For now, regular users can only see their own logs
       const userFilters = { ...filter, userId };
 
       const result = await this.auditLogService.findAll(userFilters);

@@ -152,7 +152,6 @@ export class AuthService {
         await this.usersService.updatePassword(existing.id, newHashedPassword);
       }
 
-      // Same person, not yet verified → re-send OTP and resume
       const otp = await this.otpService.createOtp(
         existing.id,
         existing.email,
@@ -176,7 +175,6 @@ export class AuthService {
 
       return { email: existing.email, nextStep: 'VERIFY_EMAIL_OTP' };
     }
-    // ── New user ──────────────────────────────────────────────────────────────
 
     const hashedPassword = await this.securityService.hash(dto.password);
 
@@ -196,7 +194,6 @@ export class AuthService {
       OtpPurpose.EMAIL_VERIFICATION,
     );
 
-    // Log OTP for development — remove in production
     console.log(`[DEV] Email OTP for ${user.email}: ${otp}`);
 
     try {
@@ -210,13 +207,14 @@ export class AuthService {
         '[MailService] Failed to send email OTP:',
         (mailErr as Error).message,
       );
-      // Do not throw — OTP is still created; user can use console value or resend
     }
 
     return { email: user.email, nextStep: 'VERIFY_EMAIL_OTP' };
   }
 
-  async verifyEmail(dto: VerifyEmailOtpDto): Promise<{ nextStep: string }> {
+  async verifyEmail(
+    dto: VerifyEmailOtpDto,
+  ): Promise<{ nextStep: string; onboardingToken: string }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new NotFoundException({
@@ -233,15 +231,31 @@ export class AuthService {
     );
     await this.usersService.markEmailVerified(user.id);
 
-    return { nextStep: 'CREATE_SECURITY_PIN' };
+    const onboardingToken = await this.securityService.generateOnboardingToken({
+      sub: user.id,
+      email: user.email,
+    });
+
+    return { nextStep: 'CREATE_SECURITY_PIN', onboardingToken };
   }
 
-  async createPin(dto: CreatePinDto): Promise<{ message: string }> {
-    const user = await this.usersService.findByEmail(dto.email);
+  async createPin(
+    userId: string,
+    dto: CreatePinDto,
+  ): Promise<{ message: string }> {
+    const user = await this.usersService.findById(userId);
     if (!user) {
       throw new NotFoundException({
         success: false,
         message: 'User not found',
+        errors: [],
+      });
+    }
+
+    if (dto.email && user.email !== dto.email) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Token does not match provided email',
         errors: [],
       });
     }
@@ -513,7 +527,7 @@ export class AuthService {
 
   async verifyPasswordOtp(
     dto: VerifyPasswordOtpDto,
-  ): Promise<{ verified: boolean }> {
+  ): Promise<{ verified: boolean; onboardingToken: string }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new NotFoundException({
@@ -528,15 +542,29 @@ export class AuthService {
       OtpPurpose.PASSWORD_RESET,
       dto.otp,
     );
-    return { verified: true };
+
+    const onboardingToken = await this.securityService.generateOnboardingToken({
+      sub: user.id,
+      email: user.email,
+    });
+
+    return { verified: true, onboardingToken };
   }
 
-  async resetPassword(dto: ResetPasswordDto): Promise<void> {
-    const user = await this.usersService.findByEmail(dto.email);
+  async resetPassword(userId: string, dto: ResetPasswordDto): Promise<void> {
+    const user = await this.usersService.findById(userId);
     if (!user) {
       throw new NotFoundException({
         success: false,
         message: 'User not found',
+        errors: [],
+      });
+    }
+
+    if (dto.email && user.email !== dto.email) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Token does not match provided email',
         errors: [],
       });
     }
@@ -574,7 +602,9 @@ export class AuthService {
     }
   }
 
-  async verifyPinOtp(dto: VerifyPinOtpDto): Promise<{ verified: boolean }> {
+  async verifyPinOtp(
+    dto: VerifyPinOtpDto,
+  ): Promise<{ verified: boolean; onboardingToken: string }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new NotFoundException({
@@ -585,15 +615,29 @@ export class AuthService {
     }
 
     await this.otpService.verifyOtp(user.id, OtpPurpose.PIN_RESET, dto.otp);
-    return { verified: true };
+
+    const onboardingToken = await this.securityService.generateOnboardingToken({
+      sub: user.id,
+      email: user.email,
+    });
+
+    return { verified: true, onboardingToken };
   }
 
-  async resetPin(dto: ResetPinDto): Promise<void> {
-    const user = await this.usersService.findByEmail(dto.email);
+  async resetPin(userId: string, dto: ResetPinDto): Promise<void> {
+    const user = await this.usersService.findById(userId);
     if (!user) {
       throw new NotFoundException({
         success: false,
         message: 'User not found',
+        errors: [],
+      });
+    }
+
+    if (dto.email && user.email !== dto.email) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Token does not match provided email',
         errors: [],
       });
     }

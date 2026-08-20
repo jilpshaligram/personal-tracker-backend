@@ -11,11 +11,7 @@ import { BillHistoryService } from '../services/bill-history.service';
 import { BillService } from '../../bills/services/bill.service';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { apiResponse } from '../../../common/responses/api-response.helper';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
-
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Bill History')
 @ApiBearerAuth()

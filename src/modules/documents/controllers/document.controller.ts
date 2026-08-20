@@ -30,12 +30,8 @@ import { DocumentService } from '../services/document.service';
 import { createDocumentSchema } from '../dto/create-document.dto';
 import { updateDocumentSchema } from '../dto/update-document.dto';
 import { multerDocumentOptions } from '../multer.config';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { successResponse } from '../../../common/responses/api-response.helper';
-
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 function sanitizeDocumentBody(
   rawBody: Record<string, unknown>,

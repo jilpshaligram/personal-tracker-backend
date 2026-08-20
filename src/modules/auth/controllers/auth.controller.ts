@@ -22,8 +22,11 @@ import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { AccessTokenGuard } from '../../../common/guards/access-token.guard';
+import { OnboardingGuard } from '../../../common/guards/onboarding.guard';
 import { Public } from '../../../common/decorators/public.decorator';
-import type { IJwtPayload } from '../interfaces/jwt-payload.interface';
+import { AuditAction } from '../../../common/decorators/audit-action.decorator';
+import { ActionType } from '../../audit-logs/enums/action-type.enum';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 import { signupSchema, SignupDto } from '../dto/signup.dto';
 import { loginSchema, LoginDto } from '../dto/login.dto';
@@ -52,12 +55,10 @@ import { resendEmailOtpSchema, ResendEmailOtpDto } from '../dto/resend-otp.dto';
 
 const ACCESS_TOKEN_COOKIE = 'access_token';
 const REFRESH_TOKEN_COOKIE = 'refresh_token';
-const ACCESS_TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day
-const REFRESH_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+const ONBOARDING_TOKEN_COOKIE = 'onboardingToken';
+const ACCESS_TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const ONBOARDING_TOKEN_MAX_AGE_MS = 5 * 60 * 1000;
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -92,8 +93,23 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Email verified successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid or expired OTP.' })
   @UsePipes(new ZodValidationPipe(verifyEmailOtpSchema))
-  async verifyEmail(@Body() dto: VerifyEmailOtpDto) {
+  async verifyEmail(
+    @Body() dto: VerifyEmailOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const data = await this.authService.verifyEmail(dto);
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+    };
+
+    res.cookie(ONBOARDING_TOKEN_COOKIE, data.onboardingToken, {
+      ...cookieOptions,
+      maxAge: ONBOARDING_TOKEN_MAX_AGE_MS,
+    });
+
     return successResponse('Email verified.', data);
   }
 
@@ -113,15 +129,28 @@ export class AuthController {
 
   @Post('create-pin')
   @Public()
+  @UseGuards(OnboardingGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('onboarding-token')
   @ApiOperation({
     summary: 'Create Security PIN',
-    description: 'Creates a 4-digit security PIN for user.',
+    description:
+      'Creates a 4-digit security PIN for user. Requires a valid onboarding token.',
   })
   @ApiResponse({ status: 200, description: 'PIN created successfully.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - valid onboarding token required.',
+  })
   @UsePipes(new ZodValidationPipe(createPinSchema))
-  async createPin(@Body() dto: CreatePinDto) {
-    const data = await this.authService.createPin(dto);
+  async createPin(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreatePinDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const data = await this.authService.createPin(req.user.sub, dto);
+    res.clearCookie(ONBOARDING_TOKEN_COOKIE);
+    res.clearCookie('onboarding_token');
     return successResponse(data.message);
   }
 
@@ -204,36 +233,46 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const cookieToken = (req.cookies as Record<string, string>)[
-      REFRESH_TOKEN_COOKIE
-    ];
+    const cookies = req.cookies as Record<string, string> | undefined;
+    const cookieToken =
+      cookies?.[REFRESH_TOKEN_COOKIE] ??
+      cookies?.['refreshToken'] ??
+      cookies?.['refresh_token'];
+
     if (!cookieToken) {
+      this.clearAuthCookies(res);
       return { success: false, message: 'Refresh token missing', errors: [] };
     }
 
-    const { accessToken, newRefreshToken } =
-      await this.authService.refreshToken(cookieToken);
+    try {
+      const { accessToken, newRefreshToken } =
+        await this.authService.refreshToken(cookieToken);
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-    };
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' as const,
+      };
 
-    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
-      ...cookieOptions,
-      maxAge: ACCESS_TOKEN_MAX_AGE_MS,
-    });
+      res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+        ...cookieOptions,
+        maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+      });
 
-    res.cookie(REFRESH_TOKEN_COOKIE, newRefreshToken, {
-      ...cookieOptions,
-      maxAge: REFRESH_TOKEN_MAX_AGE_MS,
-    });
+      res.cookie(REFRESH_TOKEN_COOKIE, newRefreshToken, {
+        ...cookieOptions,
+        maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+      });
 
-    return successResponse('Token refreshed.', { accessToken });
+      return successResponse('Token refreshed.', { accessToken });
+    } catch (err) {
+      this.clearAuthCookies(res);
+      throw err;
+    }
   }
 
   @Post('logout')
+  @AuditAction(ActionType.LOGOUT)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
@@ -249,12 +288,12 @@ export class AuthController {
     if (req.user.sessionId) {
       await this.authService.logout(req.user.sessionId);
     }
-    res.clearCookie(ACCESS_TOKEN_COOKIE);
-    res.clearCookie(REFRESH_TOKEN_COOKIE);
+    this.clearAuthCookies(res);
     return successResponse('Logged out successfully.');
   }
 
   @Post('logout-all')
+  @AuditAction(ActionType.LOGOUT)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @UseGuards(AuthGuard)
@@ -268,8 +307,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logoutAll(req.user.sub);
-    res.clearCookie(ACCESS_TOKEN_COOKIE);
-    res.clearCookie(REFRESH_TOKEN_COOKIE);
+    this.clearAuthCookies(res);
     return successResponse('Logged out from all devices.');
   }
 
@@ -296,22 +334,50 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'OTP verified.' })
   @UsePipes(new ZodValidationPipe(verifyPasswordOtpSchema))
-  async verifyPasswordOtp(@Body() dto: VerifyPasswordOtpDto) {
+  async verifyPasswordOtp(
+    @Body() dto: VerifyPasswordOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const data = await this.authService.verifyPasswordOtp(dto);
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+    };
+
+    res.cookie(ONBOARDING_TOKEN_COOKIE, data.onboardingToken, {
+      ...cookieOptions,
+      maxAge: ONBOARDING_TOKEN_MAX_AGE_MS,
+    });
+
     return successResponse('OTP verified. You may reset your password.', data);
   }
 
   @Post('reset-password')
   @Public()
+  @UseGuards(OnboardingGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('onboarding-token')
   @ApiOperation({
     summary: 'Reset Password',
-    description: 'Sets a new password for user.',
+    description:
+      'Sets a new password for user. Requires a valid onboarding token.',
   })
   @ApiResponse({ status: 200, description: 'Password reset successfully.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - valid onboarding token required.',
+  })
   @UsePipes(new ZodValidationPipe(resetPasswordSchema))
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    await this.authService.resetPassword(dto);
+  async resetPassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.resetPassword(req.user.sub, dto);
+    res.clearCookie(ONBOARDING_TOKEN_COOKIE);
+    res.clearCookie('onboarding_token');
     return successResponse('Password reset successfully.');
   }
 
@@ -338,22 +404,50 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'OTP verified.' })
   @UsePipes(new ZodValidationPipe(verifyPinOtpSchema))
-  async verifyPinOtp(@Body() dto: VerifyPinOtpDto) {
+  async verifyPinOtp(
+    @Body() dto: VerifyPinOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const data = await this.authService.verifyPinOtp(dto);
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+    };
+
+    res.cookie(ONBOARDING_TOKEN_COOKIE, data.onboardingToken, {
+      ...cookieOptions,
+      maxAge: ONBOARDING_TOKEN_MAX_AGE_MS,
+    });
+
     return successResponse('OTP verified. You may reset your PIN.', data);
   }
 
   @Post('reset-pin')
   @Public()
+  @UseGuards(OnboardingGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('onboarding-token')
   @ApiOperation({
     summary: 'Reset Security PIN',
-    description: 'Sets a new security PIN for user.',
+    description:
+      'Sets a new security PIN for user. Requires a valid onboarding token.',
   })
   @ApiResponse({ status: 200, description: 'PIN reset successfully.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - valid onboarding token required.',
+  })
   @UsePipes(new ZodValidationPipe(resetPinSchema))
-  async resetPin(@Body() dto: ResetPinDto) {
-    await this.authService.resetPin(dto);
+  async resetPin(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ResetPinDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.resetPin(req.user.sub, dto);
+    res.clearCookie(ONBOARDING_TOKEN_COOKIE);
+    res.clearCookie('onboarding_token');
     return successResponse('PIN reset successfully.');
   }
 
@@ -368,9 +462,37 @@ export class AuthController {
     status: 401,
     description: 'Invalid or expired access token',
   })
-  verifyToken(@Req() req: Request) {
+  verifyToken(@Req() req: AuthenticatedRequest) {
     return successResponse('Token is valid.', {
-      user: (req as Request & { user?: unknown }).user,
+      user: req.user,
     });
+  }
+
+  private clearAuthCookies(res: Response): void {
+    if (!res || typeof res.clearCookie !== 'function') {
+      return;
+    }
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+    };
+
+    const cookieNames = [
+      ACCESS_TOKEN_COOKIE,
+      'accessToken',
+      'token',
+      REFRESH_TOKEN_COOKIE,
+      'refreshToken',
+      ONBOARDING_TOKEN_COOKIE,
+      'onboarding_token',
+    ];
+
+    for (const name of cookieNames) {
+      res.clearCookie(name, cookieOptions);
+      res.clearCookie(name);
+    }
   }
 }

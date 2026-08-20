@@ -49,14 +49,19 @@ export class SecurityService {
       .sign(key);
   }
 
-  async generateOnboardingToken(payload: { sub: string }): Promise<string> {
+  async generateOnboardingToken(payload: {
+    sub: string;
+    email?: string;
+  }): Promise<string> {
     const secret = this.configService.get<string>('auth.accessSecret') ?? '';
+    const expiry =
+      this.configService.get<string>('auth.onboardingTokenExpiry') ?? '5m';
     const key = new TextEncoder().encode(secret);
 
     return new SignJWT({ ...payload, tokenType: 'onboarding' })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('30m')
+      .setExpirationTime(expiry)
       .sign(key);
   }
 

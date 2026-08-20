@@ -67,24 +67,6 @@ export class AuditLogFilterDto {
   action?: ActionType;
 
   @ApiProperty({
-    description: 'Filter by entity type',
-    example: 'Bill',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  entityType?: string;
-
-  @ApiProperty({
-    description: 'Filter by entity ID (UUID)',
-    example: '09527b00-5673-43f6-b592-1a5279b33a73',
-    required: false,
-  })
-  @IsUUID()
-  @IsOptional()
-  entityId?: string;
-
-  @ApiProperty({
     description: 'Filter by start date (ISO format)',
     example: '2026-08-01T00:00:00Z',
     required: false,

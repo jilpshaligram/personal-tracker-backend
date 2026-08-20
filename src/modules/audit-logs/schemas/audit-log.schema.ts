@@ -45,13 +45,6 @@ export class AuditLog extends Model {
   })
   declare action: ActionType;
 
-  @Index
-  @Column({ type: DataType.UUID, allowNull: true })
-  declare entityId: string | null;
-
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  declare entityType: string | null;
-
   @Column({ type: DataType.STRING(45), allowNull: false })
   declare ipAddress: string;
 

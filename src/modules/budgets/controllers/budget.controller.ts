@@ -24,11 +24,8 @@ import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
 import { createBudgetSchema, CreateBudgetDto } from '../dto/create-budget.dto';
 import { updateBudgetSchema, UpdateBudgetDto } from '../dto/update-budget.dto';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { AuthGuard } from '../../../common/guards/auth.guard';
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Budgets')
 @ApiBearerAuth('access-token')
