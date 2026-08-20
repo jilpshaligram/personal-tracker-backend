@@ -45,7 +45,9 @@ export class WalletService {
     // Calculate available balance dynamically
     const currentBalance = Number(wallet.currentBalance);
     const blockedAmount = Number(wallet.blockedAmount);
-    const availableBalance = currentBalance - blockedAmount;
+    const availableBalance = Number(
+      (currentBalance - blockedAmount).toFixed(2),
+    );
 
     return {
       id: wallet.id,
@@ -79,7 +81,9 @@ export class WalletService {
     const updatedWallet = updatedWallets[0];
     const currentBalance = Number(updatedWallet.currentBalance);
     const blockedAmount = Number(updatedWallet.blockedAmount);
-    const availableBalance = currentBalance - blockedAmount;
+    const availableBalance = Number(
+      (currentBalance - blockedAmount).toFixed(2),
+    );
 
     return {
       id: updatedWallet.id,

@@ -12,6 +12,7 @@ import { SecurityModule } from '../../infrastructure/security/security.module';
 import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { TransactionModule } from '../transactions/transaction.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,11 +22,10 @@ import { TransactionModule } from '../transactions/transaction.module';
     TransactionModule,
     SecurityModule,
     CloudinaryModule,
-    WalletsModule,
-    TransactionModule,
+    NotificationsModule,
   ],
   controllers: [BillController],
   providers: [BillService, BillReminderJob, BillOverdueJob],
   exports: [BillService],
 })
-export class BillsModule {}
+export class BillsModule { }

@@ -58,14 +58,6 @@ export class AuditLogService {
       where.action = filters.action;
     }
 
-    if (filters.entityType) {
-      where.entityType = filters.entityType;
-    }
-
-    if (filters.entityId) {
-      where.entityId = filters.entityId;
-    }
-
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
 
@@ -112,22 +104,6 @@ export class AuditLogService {
   ): Promise<PaginatedResult<AuditLog>> {
     const userFilters = { ...filters, userId };
     return this.findAll(userFilters);
-  }
-
-  async findByEntity(
-    entityType: string,
-    entityId: string,
-  ): Promise<AuditLog[]> {
-    const logs = await this.auditLogModel.findAll({
-      where: {
-        entityType,
-        entityId,
-      },
-      order: [['createdAt', 'DESC']],
-      limit: 100,
-    });
-
-    return logs.map((log) => log.toJSON());
   }
 
   async findById(id: string): Promise<AuditLog> {

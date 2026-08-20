@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"{src,test}/**/*.ts\" --no-error-on-unmatched-pattern",
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/main.ts",
     "dev:cloudinary-fix": "set NODE_TLS_REJECT_UNAUTHORIZED=0 && nodemon --exec ts-node src/main.ts",
     "start": "nest start",
@@ -38,6 +38,7 @@
     "class-validator": "^0.15.1",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
+    "firebase-admin": "^14.2.0",
     "install": "^0.13.0",
     "jose": "^6.2.8",
     "moment": "^2.30.1",

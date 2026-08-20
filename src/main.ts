@@ -41,6 +41,18 @@ async function bootstrap() {
       },
       'access-token',
     )
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description:
+          'Enter JWT onboarding token (obtained after successful OTP verification)',
+        in: 'header',
+      },
+      'onboarding-token',
+    )
     .addTag('Auth', 'Authentication & session management')
     .addTag('Users', 'User profile operations')
     .addTag('Transactions', 'Income & expense transactions')
@@ -53,7 +65,6 @@ async function bootstrap() {
     .addTag('Categories', 'Transaction categories')
     .addTag('Document Categories', 'Document categorization')
     .addTag('Documents', 'Document vault storage')
-    .addTag('Reports', 'Financial reports')
     .addTag('Dashboard', 'Dashboard analytics')
     .addTag('Notifications', 'User notifications')
     .addTag('Audit Logs', 'Activity audit logs')

@@ -65,6 +65,43 @@ export class TransactionRepository {
       (where as Record<string, unknown>).type = rawQuery.type;
     }
 
+    if (rawQuery.startDate || rawQuery.endDate) {
+      const dateConditions: any[] = [];
+      if (rawQuery.startDate) {
+        dateConditions.push(
+          Sequelize.where(
+            Sequelize.cast(
+              Sequelize.col('Transaction.transaction_date'),
+              'DATE',
+            ),
+            {
+              [Op.gte]: rawQuery.startDate,
+            },
+          ),
+        );
+      }
+      if (rawQuery.endDate) {
+        dateConditions.push(
+          Sequelize.where(
+            Sequelize.cast(
+              Sequelize.col('Transaction.transaction_date'),
+              'DATE',
+            ),
+            {
+              [Op.lte]: rawQuery.endDate,
+            },
+          ),
+        );
+      }
+      const whereWithAnd = where as Record<symbol, unknown[]>;
+      if (whereWithAnd[Op.and]) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        whereWithAnd[Op.and] = [...whereWithAnd[Op.and], ...dateConditions];
+      } else {
+        whereWithAnd[Op.and] = dateConditions;
+      }
+    }
+
     const categoryWhere: WhereOptions<ICategory> = {};
     if (rawQuery.category && rawQuery.category !== 'ALL') {
       (categoryWhere as Record<string, unknown>).name = {
@@ -186,6 +223,18 @@ export class TransactionRepository {
   ): Promise<Transaction | null> {
     return this.transactionModel.findOne({
       where: { id, userId },
+    });
+  }
+
+  async findByIdAndUserIdForUpdate(
+    id: string,
+    userId: string,
+    transaction: SequelizeTransaction,
+  ): Promise<Transaction | null> {
+    return this.transactionModel.findOne({
+      where: { id, userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
     });
   }
 }

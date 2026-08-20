@@ -28,4 +28,5 @@ export const TRANSACTION_QUERY_FIELDS: QueryOptions = {
 
   defaultSortBy: 'transactionDate',
   defaultSortOrder: 'DESC',
+  dateField: 'transaction_date',
 };
