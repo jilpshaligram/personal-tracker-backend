@@ -10,7 +10,7 @@ import { SavingGoalStatus } from '../enums/saving-goal-status.enum';
 import { ISavingGoal } from '../interfaces/saving-goal.interface';
 import { CreateSavingGoalDto } from '../dto/create-saving-goal.dto';
 import { UpdateSavingGoalDto } from '../dto/update-saving-goal.dto';
-import { Transaction } from 'sequelize';
+import { Transaction, FindOptions } from 'sequelize';
 
 @Injectable()
 export class SavingGoalService {
@@ -221,8 +221,17 @@ export class SavingGoalService {
    * Find a goal by PK and verify it belongs to the given user.
    * Throws NotFoundException or ForbiddenException as appropriate.
    */
-  async findGoalOrFail(id: string, userId: string): Promise<SavingGoal> {
-    const goal = await this.savingGoalModel.findByPk(id);
+  async findGoalOrFail(
+    id: string,
+    userId: string,
+    transaction?: Transaction,
+  ): Promise<SavingGoal> {
+    const options: FindOptions = {};
+    if (transaction) {
+      options.transaction = transaction;
+      options.lock = transaction.LOCK.UPDATE;
+    }
+    const goal = await this.savingGoalModel.findByPk(id, options);
 
     if (!goal) {
       throw new NotFoundException({

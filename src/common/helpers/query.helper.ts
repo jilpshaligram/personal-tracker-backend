@@ -55,7 +55,9 @@ export class QueryHelper {
         createdAtFilter[Op.lte] = new Date(endDate);
       }
 
-      (where as Record<string, unknown>)['createdAt'] = createdAtFilter;
+      const dateField = options.dateField ?? 'createdAt';
+
+      (where as Record<string, unknown>)[dateField] = createdAtFilter;
     }
 
     // SORTING

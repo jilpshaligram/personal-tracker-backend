@@ -30,9 +30,7 @@ export class AccessTokenGuard implements CanActivate {
     // 2. Check cookies
     if (!accessToken && cookies) {
       accessToken =
-        cookies['accessToken'] ??
-        cookies['access_token'] ??
-        cookies['token'];
+        cookies['accessToken'] ?? cookies['access_token'] ?? cookies['token'];
     }
 
     // 3. Fallback: Parse raw cookie header if cookies object is not parsed
@@ -59,8 +57,7 @@ export class AccessTokenGuard implements CanActivate {
     }
 
     try {
-      const payload =
-        await this.securityService.verifyAccessToken(accessToken);
+      const payload = await this.securityService.verifyAccessToken(accessToken);
 
       (request as Request & { user: unknown }).user = {
         id: payload.sub,
