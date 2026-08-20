@@ -29,13 +29,9 @@ import { PayBillDto, payBillSchema } from '../dto/pay-bill.dto';
 import { BillFilterDto, billFilterSchema } from '../dto/bill-filter.dto';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { apiResponse } from '../../../common/responses/api-response.helper';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { BillStatus } from '../../bills/enums/bill-status.enum';
 import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
-
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Bills')
 @ApiBearerAuth()

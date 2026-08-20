@@ -36,24 +36,6 @@ export class CreateAuditLogDto {
   action: ActionType;
 
   @ApiProperty({
-    description: 'Entity ID (UUID, optional)',
-    example: '09527b00-5673-43f6-b592-1a5279b33a73',
-    required: false,
-  })
-  @IsUUID()
-  @IsOptional()
-  entityId?: string | null;
-
-  @ApiProperty({
-    description: 'Entity type',
-    example: 'Bill',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  entityType?: string | null;
-
-  @ApiProperty({
     description: 'Client IP address',
     example: '192.168.1.1',
   })

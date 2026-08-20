@@ -21,8 +21,7 @@ import { createWalletSchema, CreateWalletDto } from '../dto/create-wallet.dto';
 import { updateWalletSchema, UpdateWalletDto } from '../dto/update-wallet.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
-import { Request } from 'express';
-import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Wallets')
 @ApiBearerAuth('access-token')
@@ -56,7 +55,7 @@ export class WalletController {
     description: 'User already has a primary wallet.',
   })
   async create(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(createWalletSchema))
     createWalletDto: CreateWalletDto,
   ) {
@@ -89,7 +88,7 @@ export class WalletController {
     status: 404,
     description: 'Wallet not found for this user.',
   })
-  async getMyWallet(@Req() req: Request & { user: IJwtPayload }) {
+  async getMyWallet(@Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const walletData = await this.walletService.getWallet(userId);
 
@@ -125,7 +124,7 @@ export class WalletController {
     description: 'Wallet not found for this user.',
   })
   async updateMyWallet(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(updateWalletSchema))
     updateWalletDto: UpdateWalletDto,
   ) {

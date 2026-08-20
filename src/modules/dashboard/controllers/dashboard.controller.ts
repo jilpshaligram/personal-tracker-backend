@@ -13,7 +13,7 @@ import {
   getDashboardSchema,
   GetDashboardSchemaType,
 } from '../dto/get-dashboard.dto';
-import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth('access-token')
@@ -131,7 +131,7 @@ export class DashboardController {
   @ApiResponse({ status: 400, description: 'Invalid period value.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async getDashboard(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Query(new ZodValidationPipe(getDashboardSchema))
     query: GetDashboardSchemaType,
   ) {

@@ -26,11 +26,8 @@ import { BudgetsModule } from './modules/budgets';
 import { DashboardModule } from './modules/dashboard';
 import { DocumentCategoryModule } from './modules/document-category';
 import { DocumentModule } from './modules/documents';
-import { ExpenseCategoryModule } from './modules/expense-category';
-import { IncomeCategoryModule } from './modules/income-category';
 import { NotificationsModule } from './modules/notifications';
 import { OtpModule } from './modules/otp';
-import { ReportsModule } from './modules/reports';
 import { SavingGoalsModule } from './modules/saving-goals';
 import { SavingTransactionsModule } from './modules/saving-transactions';
 import { TransactionModule } from './modules/transactions';
@@ -68,8 +65,6 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     CategoriesModule,
     DocumentCategoryModule,
     DocumentModule,
-    IncomeCategoryModule,
-    ExpenseCategoryModule,
     BudgetsModule,
     BillsModule,
     BillHistoryModule,
@@ -78,7 +73,6 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     NotificationsModule,
     AuditLogsModule,
     DashboardModule,
-    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

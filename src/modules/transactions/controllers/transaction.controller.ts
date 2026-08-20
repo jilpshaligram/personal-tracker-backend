@@ -28,10 +28,9 @@ import {
   UpdateTransactionDto,
 } from '../dto/update-transaction.dto';
 
-import { Request } from 'express';
-import { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { Query } from '@nestjs/common';
 import { QueryTransactionDto } from '../dto/query-transaction.dto';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
@@ -51,7 +50,7 @@ export class TransactionController {
   })
   @ApiResponse({ status: 400, description: 'Validation error.' })
   async create(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Body(new ZodValidationPipe(createTransactionSchema))
     createTransactionDto: CreateTransactionDto,
   ) {
@@ -79,7 +78,7 @@ export class TransactionController {
     description: 'Transactions retrieved successfully.',
   })
   async findAll(
-    @Req() req: Request & { user: IJwtPayload },
+    @Req() req: AuthenticatedRequest,
     @Query() query: QueryTransactionDto,
   ) {
     const userId = req.user.sub;
@@ -103,10 +102,7 @@ export class TransactionController {
     description: 'Transaction retrieved successfully.',
   })
   @ApiResponse({ status: 404, description: 'Transaction not found.' })
-  async findOne(
-    @Param('id') id: string,
-    @Req() req: Request & { user: IJwtPayload },
-  ) {
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user.sub;
     const transaction = await this.transactionService.findOne(id, userId);
 

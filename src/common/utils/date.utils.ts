@@ -15,7 +15,6 @@ export function calculateBudgetPeriodDates(period: BudgetPeriod): {
       end = now.clone().endOf('day');
       break;
     case BudgetPeriod.WEEKLY:
-      // isoWeek uses Monday as the start of the week
       start = now.clone().startOf('isoWeek');
       end = now.clone().endOf('isoWeek');
       break;

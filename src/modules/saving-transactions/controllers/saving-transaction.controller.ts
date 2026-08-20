@@ -32,13 +32,10 @@ import {
   updateSavingTransactionSchema,
   UpdateSavingTransactionDto,
 } from '../dto/update-saving-transaction.dto';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { QuerySavingTransactionDto } from '../dto/query-saving-transaction.dto';
-import { AuthGuard } from '../../../common/guards/auth.guard';
 
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+import { AuthGuard } from '../../../common/guards/auth.guard';
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Saving Transactions')
 @ApiBearerAuth('access-token')

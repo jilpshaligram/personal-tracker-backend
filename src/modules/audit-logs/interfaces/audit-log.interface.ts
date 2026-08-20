@@ -5,8 +5,6 @@ export interface IAuditLog {
   userId: string;
   module: string;
   action: ActionType;
-  entityId?: string | null;
-  entityType?: string | null;
   ipAddress: string;
   userAgent: string;
   requestMethod: string;

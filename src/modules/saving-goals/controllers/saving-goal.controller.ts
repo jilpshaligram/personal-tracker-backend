@@ -35,14 +35,13 @@ import {
   updateSavingGoalSchema,
   UpdateSavingGoalDto,
 } from '../dto/update-saving-goal.dto';
-import type { IJwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { TransactionType } from '../../transactions/enums/transaction-type.enum';
 import { PaymentMethod } from '../../transactions/enums/payment-method.enum';
 import { z } from 'zod';
-import { AuthGuard } from '../../../common/guards/auth.guard';
-interface AuthenticatedRequest extends Request {
-  user: IJwtPayload;
-}
+
+import { AuthGuard } from 'src/common/guards/auth.guard';
+
+import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
 
 const transactionSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
