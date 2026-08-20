@@ -67,11 +67,7 @@ export class CloudinaryService {
       } catch (error: unknown) {
         lastError = error;
         const errorMessage =
-<<<<<<< Updated upstream
-          error instanceof Error ? error.message : 'Unknown error';
-=======
           error instanceof Error ? error.message : String(error);
->>>>>>> Stashed changes
         console.warn(
           `Cloudinary upload attempt ${attempt} failed:`,
           errorMessage,

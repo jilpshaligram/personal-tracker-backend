@@ -30,7 +30,10 @@ import {
 
 import { Query } from '@nestjs/common';
 import { QueryTransactionDto } from '../dto/query-transaction.dto';
-import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
+import type {
+  AuthenticatedRequest,
+  IJwtPayload,
+} from '../../../common/interfaces/authenticated-request.interface';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
