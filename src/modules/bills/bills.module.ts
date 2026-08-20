@@ -28,4 +28,4 @@ import { NotificationsModule } from '../notifications/notifications.module';
   providers: [BillService, BillReminderJob, BillOverdueJob],
   exports: [BillService],
 })
-export class BillsModule { }
+export class BillsModule {}

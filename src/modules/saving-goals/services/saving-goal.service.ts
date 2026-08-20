@@ -204,7 +204,7 @@ export class SavingGoalService {
       updateData.status = SavingGoalStatus.COMPLETED;
       if (!goal.completedAt) {
         updateData.completedAt = new Date();
-        
+
         // Trigger instant notification
         // Await the push so it saves to the DB before the transaction commits/ends.
         // Firebase errors are handled internally by createAndPush.

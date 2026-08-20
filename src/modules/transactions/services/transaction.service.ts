@@ -164,7 +164,7 @@ export class TransactionService {
             goalUpdateData.status = SavingGoalStatus.COMPLETED;
             if (!goal.completedAt) {
               goalUpdateData.completedAt = new Date();
-              
+
               // Trigger instant notification
               await this.notificationService.createAndPush({
                 userId: goal.userId,

@@ -4,7 +4,6 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Budget } from '../modules/budgets/schemas/budget.schema';
 import { BudgetRepository } from '../modules/budgets/repositories/budget.repository';
 import { NotificationService } from '../modules/notifications/services/notification.service';
-import { Op } from 'sequelize';
 
 @Injectable()
 export class BudgetAlertJob {
@@ -46,7 +45,9 @@ export class BudgetAlertJob {
         where: { isActive: true },
       });
 
-      this.logger.log(`[BudgetAlert] ${activeBudgets.length} active budget(s) found.`);
+      this.logger.log(
+        `[BudgetAlert] ${activeBudgets.length} active budget(s) found.`,
+      );
 
       let alertsSent = 0;
 
@@ -63,22 +64,26 @@ export class BudgetAlertJob {
         );
 
         const spentRatio = spentAmount / budget.amount;
-        const remainingDays = Math.max(0, Math.round((endMs - todayMs) / 86_400_000));
-        
+        const remainingDays = Math.max(
+          0,
+          Math.round((endMs - todayMs) / 86_400_000),
+        );
+
         this.logger.debug(
-          `[BudgetAlert] Budget ${budget.id}: Spent ${spentAmount} of ${budget.amount} (${(spentRatio*100).toFixed(1)}%). Ends in ${remainingDays} days.`,
+          `[BudgetAlert] Budget ${budget.id}: Spent ${spentAmount} of ${budget.amount} (${(spentRatio * 100).toFixed(1)}%). Ends in ${remainingDays} days.`,
         );
 
         const periodStart = new Date(budget.startDate + 'T00:00:00Z');
 
         // 1. BUDGET_EXCEEDED
         if (spentAmount > budget.amount) {
-          const alreadySent = await this.notificationService.notificationExistsSince(
-            budget.userId,
-            'BUDGET_EXCEEDED',
-            budget.id,
-            periodStart,
-          );
+          const alreadySent =
+            await this.notificationService.notificationExistsSince(
+              budget.userId,
+              'BUDGET_EXCEEDED',
+              budget.id,
+              periodStart,
+            );
 
           if (!alreadySent) {
             await this.notificationService.createAndPush({
@@ -89,18 +94,21 @@ export class BudgetAlertJob {
               referenceId: budget.id,
               referenceType: 'BUDGET',
             });
-            this.logger.log(`[BudgetAlert] 🔴 BUDGET_EXCEEDED alert sent for budget ${budget.id}`);
+            this.logger.log(
+              `[BudgetAlert] 🔴 BUDGET_EXCEEDED alert sent for budget ${budget.id}`,
+            );
             alertsSent++;
           }
-        } 
+        }
         // 2. BUDGET_THRESHOLD (80%)
         else if (spentRatio >= this.ALERT_THRESHOLD) {
-          const alreadySent = await this.notificationService.notificationExistsSince(
-            budget.userId,
-            'BUDGET_THRESHOLD',
-            budget.id,
-            periodStart,
-          );
+          const alreadySent =
+            await this.notificationService.notificationExistsSince(
+              budget.userId,
+              'BUDGET_THRESHOLD',
+              budget.id,
+              periodStart,
+            );
 
           if (!alreadySent) {
             await this.notificationService.createAndPush({
@@ -111,27 +119,31 @@ export class BudgetAlertJob {
               referenceId: budget.id,
               referenceType: 'BUDGET',
             });
-            this.logger.log(`[BudgetAlert] 🟠 BUDGET_THRESHOLD alert sent for budget ${budget.id}`);
+            this.logger.log(
+              `[BudgetAlert] 🟠 BUDGET_THRESHOLD alert sent for budget ${budget.id}`,
+            );
             alertsSent++;
           }
         }
 
         // 3. BUDGET_ENDING (3 days left, spent > 0)
         if (remainingDays <= 3 && remainingDays >= 0 && spentAmount > 0) {
-           // We only want to notify once when it enters the 3-day window
-           // Check if sent in the last 4 days (to cover the 3-day window)
-           const windowStart = new Date(todayMs - (4 * 86_400_000));
-           const sinceDate = windowStart > periodStart ? windowStart : periodStart;
-           
-           const alreadySent = await this.notificationService.notificationExistsSince(
-            budget.userId,
-            'BUDGET_ENDING',
-            budget.id,
-            sinceDate,
-          );
+          // We only want to notify once when it enters the 3-day window
+          // Check if sent in the last 4 days (to cover the 3-day window)
+          const windowStart = new Date(todayMs - 4 * 86_400_000);
+          const sinceDate =
+            windowStart > periodStart ? windowStart : periodStart;
+
+          const alreadySent =
+            await this.notificationService.notificationExistsSince(
+              budget.userId,
+              'BUDGET_ENDING',
+              budget.id,
+              sinceDate,
+            );
 
           if (!alreadySent && spentAmount < budget.amount) {
-             await this.notificationService.createAndPush({
+            await this.notificationService.createAndPush({
               userId: budget.userId,
               type: 'BUDGET_ENDING',
               title: 'Budget Ending Soon',
@@ -139,7 +151,9 @@ export class BudgetAlertJob {
               referenceId: budget.id,
               referenceType: 'BUDGET',
             });
-            this.logger.log(`[BudgetAlert] ⏳ BUDGET_ENDING alert sent for budget ${budget.id}`);
+            this.logger.log(
+              `[BudgetAlert] ⏳ BUDGET_ENDING alert sent for budget ${budget.id}`,
+            );
             alertsSent++;
           }
         }

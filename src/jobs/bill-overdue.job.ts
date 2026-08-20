@@ -52,7 +52,9 @@ export class BillOverdueJob {
         },
       });
 
-      this.logger.log(`[BillOverdue] ${overdueBills.length} bill(s) newly overdue.`);
+      this.logger.log(
+        `[BillOverdue] ${overdueBills.length} bill(s) newly overdue.`,
+      );
 
       let updated = 0;
 
@@ -66,22 +68,29 @@ export class BillOverdueJob {
 
         // Step 3: Dedup — only send one OVERDUE notification per bill per day
         const since = new Date(todayStr + 'T00:00:00Z');
-        const alreadySent = await this.notificationService.notificationExistsSince(
-          bill.userId,
-          'BILL_OVERDUE',
-          bill.id,
-          since,
-        );
+        const alreadySent =
+          await this.notificationService.notificationExistsSince(
+            bill.userId,
+            'BILL_OVERDUE',
+            bill.id,
+            since,
+          );
 
         if (alreadySent) {
-          this.logger.warn(`[BillOverdue] ⏭ OVERDUE notification already sent today: "${bill.title}"`);
+          this.logger.warn(
+            `[BillOverdue] ⏭ OVERDUE notification already sent today: "${bill.title}"`,
+          );
           continue;
         }
 
-        const dueDateDisplay = new Date(bill.dueDate + 'T00:00:00Z').toLocaleDateString(
-          'en-IN',
-          { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' },
-        );
+        const dueDateDisplay = new Date(
+          bill.dueDate + 'T00:00:00Z',
+        ).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'Asia/Kolkata',
+        });
 
         // Step 4: Create DB notification + Firebase push
         await this.notificationService.createAndPush({
@@ -93,12 +102,16 @@ export class BillOverdueJob {
           referenceType: 'BILL',
         });
 
-        this.logger.log(`[BillOverdue] ✅ OVERDUE notification sent: "${bill.title}" | userId=${bill.userId}`);
+        this.logger.log(
+          `[BillOverdue] ✅ OVERDUE notification sent: "${bill.title}" | userId=${bill.userId}`,
+        );
 
         updated++;
       }
 
-      this.logger.log(`[BillOverdue] Done — ${updated} bill(s) marked overdue and notified.`);
+      this.logger.log(
+        `[BillOverdue] Done — ${updated} bill(s) marked overdue and notified.`,
+      );
     } catch (error) {
       this.logger.error(
         '[BillOverdue] ❌ Unhandled error.',

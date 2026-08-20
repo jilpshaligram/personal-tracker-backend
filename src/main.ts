@@ -75,7 +75,7 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
       tagsSorter: 'alpha',
-      operationsSorter: 'alpha'
+      operationsSorter: 'alpha',
     },
     customSiteTitle: 'Personal Tracker API Docs',
   });

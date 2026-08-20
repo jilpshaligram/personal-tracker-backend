@@ -14,26 +14,13 @@ import { Document } from '../documents/models/document.model';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([
-      Notification,
-      NotificationDevice,
-      Document,
-    ]),
+    SequelizeModule.forFeature([Notification, NotificationDevice, Document]),
   ],
 
-  controllers: [
-    NotificationController,
-  ],
+  controllers: [NotificationController],
 
-  providers: [
-    NotificationService,
-    FirebaseService,
-    DocumentReminderService,
-  ],
+  providers: [NotificationService, FirebaseService, DocumentReminderService],
 
-  exports: [
-    NotificationService,
-    FirebaseService,
-  ],
+  exports: [NotificationService, FirebaseService],
 })
 export class NotificationsModule {}

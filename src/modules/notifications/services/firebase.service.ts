@@ -1,17 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import {
-  App,
-  cert,
-  getApp,
-  getApps,
-  initializeApp,
-} from 'firebase-admin/app';
+import { App, cert, getApp, getApps, initializeApp } from 'firebase-admin/app';
 
-import {
-  getMessaging,
-  Messaging,
-} from 'firebase-admin/messaging';
+import { getMessaging, Messaging } from 'firebase-admin/messaging';
 
 @Injectable()
 export class FirebaseService {
@@ -26,11 +17,7 @@ export class FirebaseService {
         credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey:
-            process.env.FIREBASE_PRIVATE_KEY?.replace(
-              /\\n/g,
-              '\n',
-            ),
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
         }),
       });
 
@@ -60,9 +47,7 @@ export class FirebaseService {
         data: data ?? {},
       });
 
-      this.logger.log(
-        `Firebase notification sent successfully: ${response}`,
-      );
+      this.logger.log(`Firebase notification sent successfully: ${response}`);
 
       return response;
     } catch (error) {

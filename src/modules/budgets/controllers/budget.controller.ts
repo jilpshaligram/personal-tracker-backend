@@ -163,7 +163,10 @@ export class BudgetController {
   @ApiOperation({
     summary: '[DEV] Manually trigger the budget alert scheduler',
   })
-  @ApiResponse({ status: 200, description: 'Scheduler triggered successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduler triggered successfully.',
+  })
   async testAlerts() {
     await this.budgetAlertJob.triggerNow();
     return successResponse('Budget alert check triggered. Check server logs.');

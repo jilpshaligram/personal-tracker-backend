@@ -203,13 +203,17 @@ export class NotificationService {
         );
 
         sent++;
-      } catch (error: any) {
+      } catch (error) {
         failed++;
 
-        const errorCode = error?.errorInfo?.code;
+        const err = error as {
+          errorInfo?: { code?: string };
+          message?: string;
+        };
+        const errorCode = err?.errorInfo?.code;
 
         console.error(
-          `[NotificationService] Push failed for device ${device.id}: ${errorCode ?? error?.message}`,
+          `[NotificationService] Push failed for device ${device.id}: ${errorCode ?? err?.message}`,
         );
 
         // ── Invalid token cleanup ──────────────────────────────────────────

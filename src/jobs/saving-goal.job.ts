@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op } from 'sequelize';
 
 import { SavingGoal } from '../modules/saving-goals/schemas/saving-goal.schema';
 import { SavingGoalStatus } from '../modules/saving-goals/enums/saving-goal-status.enum';
@@ -34,13 +33,17 @@ export class SavingGoalJob {
     try {
       const today = new Date();
       // IST string
-      const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const todayStr = today.toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Kolkata',
+      });
       const todayDate = new Date(todayStr + 'T00:00:00Z');
-      
+
       const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday
       const dayOfMonth = today.getDate();
 
-      this.logger.log(`[SavingGoal] Today (IST): ${todayStr} | DOW: ${dayOfWeek} | DOM: ${dayOfMonth}`);
+      this.logger.log(
+        `[SavingGoal] Today (IST): ${todayStr} | DOW: ${dayOfWeek} | DOM: ${dayOfMonth}`,
+      );
 
       // Fetch all active goals with autoReminder enabled
       const goals = await this.savingGoalModel.findAll({
@@ -51,7 +54,9 @@ export class SavingGoalJob {
         },
       });
 
-      this.logger.log(`[SavingGoal] ${goals.length} active goal(s) with auto-reminder found.`);
+      this.logger.log(
+        `[SavingGoal] ${goals.length} active goal(s) with auto-reminder found.`,
+      );
 
       let sent = 0;
 
@@ -81,12 +86,13 @@ export class SavingGoalJob {
         }
 
         if (shouldSend) {
-          const alreadySent = await this.notificationService.notificationExistsSince(
-            goal.userId,
-            'SAVING_GOAL_REMINDER',
-            goal.id,
-            periodStart,
-          );
+          const alreadySent =
+            await this.notificationService.notificationExistsSince(
+              goal.userId,
+              'SAVING_GOAL_REMINDER',
+              goal.id,
+              periodStart,
+            );
 
           if (!alreadySent) {
             await this.notificationService.createAndPush({
@@ -97,10 +103,14 @@ export class SavingGoalJob {
               referenceId: goal.id,
               referenceType: 'SAVING_GOAL',
             });
-            this.logger.log(`[SavingGoal] ✅ REMINDER sent for goal ${goal.id} (${goal.reminderFrequency})`);
+            this.logger.log(
+              `[SavingGoal] ✅ REMINDER sent for goal ${goal.id} (${goal.reminderFrequency})`,
+            );
             sent++;
           } else {
-            this.logger.debug(`[SavingGoal] ⏭ REMINDER already sent for goal ${goal.id} this period.`);
+            this.logger.debug(
+              `[SavingGoal] ⏭ REMINDER already sent for goal ${goal.id} this period.`,
+            );
           }
         }
       }

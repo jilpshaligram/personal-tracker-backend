@@ -21,11 +21,10 @@ export interface NotificationAttributes {
   updatedAt: Date;
 }
 
-export interface NotificationCreationAttributes
-  extends Omit<
-    NotificationAttributes,
-    'id' | 'createdAt' | 'updatedAt'
-  > {
+export interface NotificationCreationAttributes extends Omit<
+  NotificationAttributes,
+  'id' | 'createdAt' | 'updatedAt'
+> {
   id?: string;
   createdAt?: Date;
   updatedAt?: Date;

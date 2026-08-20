@@ -50,24 +50,28 @@ export class BillReminderJob {
         },
       });
 
-      this.logger.log(`[BillReminder] ${bills.length} pending/overdue bill(s) found.`);
+      this.logger.log(
+        `[BillReminder] ${bills.length} pending/overdue bill(s) found.`,
+      );
 
       let created = 0;
       let skipped = 0;
 
       for (const bill of bills) {
-        const dueDateStr = new Date(bill.dueDate)
-          .toISOString()
-          .slice(0, 10);
+        const dueDateStr = new Date(bill.dueDate).toISOString().slice(0, 10);
 
         const todayMs = new Date(todayStr + 'T00:00:00Z').getTime();
         const dueMs = new Date(dueDateStr + 'T00:00:00Z').getTime();
         const diffDays = Math.round((dueMs - todayMs) / 86_400_000);
 
-        const dueDateDisplay = new Date(dueDateStr + 'T00:00:00Z').toLocaleDateString(
-          'en-IN',
-          { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' },
-        );
+        const dueDateDisplay = new Date(
+          dueDateStr + 'T00:00:00Z',
+        ).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'Asia/Kolkata',
+        });
 
         this.logger.debug(
           `[BillReminder] "${bill.title}" | id=${bill.id} | dueDate=${dueDateStr} | diffDays=${diffDays}`,
@@ -76,15 +80,18 @@ export class BillReminderJob {
         // ── DUE TODAY ───────────────────────────────────────────────────────
         if (diffDays === 0) {
           const since = new Date(todayStr + 'T00:00:00Z');
-          const alreadySent = await this.notificationService.notificationExistsSince(
-            bill.userId,
-            'BILL_DUE_TODAY',
-            bill.id,
-            since,
-          );
+          const alreadySent =
+            await this.notificationService.notificationExistsSince(
+              bill.userId,
+              'BILL_DUE_TODAY',
+              bill.id,
+              since,
+            );
 
           if (alreadySent) {
-            this.logger.warn(`[BillReminder] ⏭ DUE_TODAY already sent today: "${bill.title}"`);
+            this.logger.warn(
+              `[BillReminder] ⏭ DUE_TODAY already sent today: "${bill.title}"`,
+            );
             skipped++;
           } else {
             await this.notificationService.createAndPush({
@@ -96,7 +103,9 @@ export class BillReminderJob {
               referenceType: 'BILL',
             });
 
-            this.logger.log(`[BillReminder] ✅ DUE_TODAY notification created: "${bill.title}"`);
+            this.logger.log(
+              `[BillReminder] ✅ DUE_TODAY notification created: "${bill.title}"`,
+            );
             created++;
           }
 
@@ -106,20 +115,21 @@ export class BillReminderJob {
         // ── UPCOMING — check each reminder day ──────────────────────────────
         // for (const reminderDay of bill.reminderDaysBefore) {
         const reminderDays = bill.reminderDaysBefore?.length
-  ? bill.reminderDaysBefore
-  : [3, 2, 1];
+          ? bill.reminderDaysBefore
+          : [3, 2, 1];
 
-for (const reminderDay of reminderDays) {
+        for (const reminderDay of reminderDays) {
           if (diffDays !== reminderDay) continue;
 
           // Dedup: one UPCOMING notification per bill per day
           const since = new Date(todayStr + 'T00:00:00Z');
-          const alreadySent = await this.notificationService.notificationExistsSince(
-            bill.userId,
-            'BILL_UPCOMING',
-            bill.id,
-            since,
-          );
+          const alreadySent =
+            await this.notificationService.notificationExistsSince(
+              bill.userId,
+              'BILL_UPCOMING',
+              bill.id,
+              since,
+            );
 
           if (alreadySent) {
             this.logger.warn(
@@ -149,7 +159,9 @@ for (const reminderDay of reminderDays) {
         }
       }
 
-      this.logger.log(`[BillReminder] Done — ✅ ${created} created, ⏭ ${skipped} skipped.`);
+      this.logger.log(
+        `[BillReminder] Done — ✅ ${created} created, ⏭ ${skipped} skipped.`,
+      );
     } catch (error) {
       this.logger.error(
         '[BillReminder] ❌ Unhandled error.',

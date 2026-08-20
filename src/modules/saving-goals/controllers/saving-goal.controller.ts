@@ -258,9 +258,14 @@ export class SavingGoalController {
   @ApiOperation({
     summary: '[DEV] Manually trigger the saving goal reminder scheduler',
   })
-  @ApiResponse({ status: 200, description: 'Scheduler triggered successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduler triggered successfully.',
+  })
   async testReminders() {
     await this.savingGoalJob.triggerNow();
-    return successResponse('Saving goal reminder check triggered. Check server logs.');
+    return successResponse(
+      'Saving goal reminder check triggered. Check server logs.',
+    );
   }
 }
