@@ -23,13 +23,15 @@ export class CloudinaryService {
             console.error('Cloudinary Upload Error:', error);
 
             // Handle SSL certificate errors specifically
-            if (error.message.includes('unable to verify the first certificate')) {
+            if (
+              error.message.includes('unable to verify the first certificate')
+            ) {
               return reject(
                 new BadRequestException(
                   'Cloudinary SSL certificate verification failed. ' +
-                  'This is likely due to missing system certificates or proxy/firewall settings. ' +
-                  'Try setting NODE_TLS_REJECT_UNAUTHORIZED=0 (development only) or ' +
-                  'adding --use-system-ca flag when starting Node.js.'
+                    'This is likely due to missing system certificates or proxy/firewall settings. ' +
+                    'Try setting NODE_TLS_REJECT_UNAUTHORIZED=0 (development only) or ' +
+                    'adding --use-system-ca flag when starting Node.js.',
                 ),
               );
             }
@@ -53,23 +55,30 @@ export class CloudinaryService {
   async uploadFileWithRetry(
     file: Express.Multer.File,
     folder: string = 'documents',
-    maxRetries: number = 2
+    maxRetries: number = 2,
   ): Promise<UploadApiResponse> {
-    let lastError: any = new BadRequestException('Cloudinary upload failed');
+    let lastError: unknown = new BadRequestException(
+      'Cloudinary upload failed',
+    );
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await this.uploadFile(file, folder);
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error;
-        console.warn(`Cloudinary upload attempt ${attempt} failed:`, error.message);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.warn(
+          `Cloudinary upload attempt ${attempt} failed:`,
+          errorMessage,
+        );
 
         if (attempt === maxRetries) {
           break;
         }
 
         // Wait before retry (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+        await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
       }
     }
 
