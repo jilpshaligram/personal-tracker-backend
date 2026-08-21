@@ -6,10 +6,9 @@ import {
   IsUUID,
   IsISO8601,
   Min,
-  Max,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionType } from '../enums/action-type.enum';
+import { ActionType } from '@/modules/audit-logs/enums/action-type.enum';
 import { Type } from 'class-transformer';
 
 export class AuditLogFilterDto {
@@ -33,7 +32,6 @@ export class AuditLogFilterDto {
   })
   @IsNumber()
   @Min(1)
-  @Max(200)
   @IsOptional()
   @Type(() => Number)
   limit?: number = 50;

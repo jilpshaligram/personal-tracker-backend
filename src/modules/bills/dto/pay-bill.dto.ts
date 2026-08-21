@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentMethod } from '../enums/payment-method.enum';
+import { PaymentMethod } from '@/modules/bills/enums/payment-method.enum';
 
 export const payBillSchema = z.object({
   amountPaid: z.number().positive('Amount paid must be greater than 0'),

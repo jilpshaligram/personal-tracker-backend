@@ -1,6 +1,6 @@
-import { BillStatus } from '../enums/bill-status.enum';
-import { RecurringType } from '../enums/recurring-type.enum';
-import { PaymentMethod } from '../enums/payment-method.enum';
+import { BillStatus } from '@/modules/bills/enums/bill-status.enum';
+import { RecurringType } from '@/modules/bills/enums/recurring-type.enum';
+import { PaymentMethod } from '@/modules/bills/enums/payment-method.enum';
 
 export interface BillEntity {
   id: string;

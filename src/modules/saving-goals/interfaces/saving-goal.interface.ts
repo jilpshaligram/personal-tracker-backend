@@ -1,5 +1,5 @@
-import { SavingGoalStatus } from '../enums/saving-goal-status.enum';
-import { ReminderFrequency } from '../enums/reminder-frequency.enum';
+import { SavingGoalStatus } from '@/modules/saving-goals/enums/saving-goal-status.enum';
+import { ReminderFrequency } from '@/modules/saving-goals/enums/reminder-frequency.enum';
 
 export interface ISavingGoal {
   id: string;

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { SignJWT, jwtVerify } from 'jose';
-import { IJwtPayload } from '../../modules/auth/interfaces/jwt-payload.interface';
+import { IJwtPayload } from '@/modules/auth/interfaces/jwt-payload.interface';
 
 const BCRYPT_ROUNDS = 12;
 

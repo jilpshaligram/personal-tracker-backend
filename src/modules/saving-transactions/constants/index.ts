@@ -1,1 +1,1 @@
-export * from './query-fields.constants';
+export * from '@/modules/saving-transactions/constants/query-fields.constants';

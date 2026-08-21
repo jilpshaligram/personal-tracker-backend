@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
 
-import { SavingGoal } from '../modules/saving-goals/schemas/saving-goal.schema';
-import { SavingGoalStatus } from '../modules/saving-goals/enums/saving-goal-status.enum';
-import { ReminderFrequency } from '../modules/saving-goals/enums/reminder-frequency.enum';
-import { NotificationService } from '../modules/notifications/services/notification.service';
+import { SavingGoal } from '@/modules/saving-goals/saving-goal.schema';
+import { SavingGoalStatus } from '@/modules/saving-goals/enums/saving-goal-status.enum';
+import { ReminderFrequency } from '@/modules/saving-goals/enums/reminder-frequency.enum';
+import { NotificationService } from '@/modules/notifications/notification.service';
 
 @Injectable()
 export class SavingGoalJob {
@@ -17,7 +17,7 @@ export class SavingGoalJob {
     private readonly notificationService: NotificationService,
   ) {}
 
-  @Cron('0 9 * * *', { timeZone: 'Asia/Kolkata' }) // Daily at 9 AM IST
+  @Cron('0 9 * * *', { timeZone: 'Asia/Kolkata' })
   async execute(): Promise<void> {
     return this.runCheck();
   }
@@ -32,20 +32,19 @@ export class SavingGoalJob {
 
     try {
       const today = new Date();
-      // IST string
+
       const todayStr = today.toLocaleDateString('en-CA', {
         timeZone: 'Asia/Kolkata',
       });
       const todayDate = new Date(todayStr + 'T00:00:00Z');
 
-      const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday
+      const dayOfWeek = today.getDay();
       const dayOfMonth = today.getDate();
 
       this.logger.log(
         `[SavingGoal] Today (IST): ${todayStr} | DOW: ${dayOfWeek} | DOM: ${dayOfMonth}`,
       );
 
-      // Fetch all active goals with autoReminder enabled
       const goals = await this.savingGoalModel.findAll({
         where: {
           status: SavingGoalStatus.ACTIVE,
@@ -67,17 +66,15 @@ export class SavingGoalJob {
         switch (goal.reminderFrequency) {
           case ReminderFrequency.DAILY:
             shouldSend = true;
-            periodStart = todayDate; // since start of today
+            periodStart = todayDate;
             break;
           case ReminderFrequency.WEEKLY:
-            // Send on Mondays
             if (dayOfWeek === 1) {
               shouldSend = true;
               periodStart = todayDate;
             }
             break;
           case ReminderFrequency.MONTHLY:
-            // Send on the 1st of the month
             if (dayOfMonth === 1) {
               shouldSend = true;
               periodStart = todayDate;
@@ -119,7 +116,7 @@ export class SavingGoalJob {
     } catch (error) {
       this.logger.error(
         '[SavingGoal] ❌ Unhandled error.',
-        error instanceof Error ? error.stack : String(error),
+        error instanceof Error ? error.message : String(error),
       );
     }
     this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

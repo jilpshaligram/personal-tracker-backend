@@ -3,9 +3,9 @@ import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 
-import { Bill } from '../modules/bills/schemas/bill.schema';
-import { BillStatus } from '../modules/bills/enums/bill-status.enum';
-import { NotificationService } from '../modules/notifications/services/notification.service';
+import { Bill } from '@/modules/bills/bill.schema';
+import { BillStatus } from '@/modules/bills/enums/bill-status.enum';
+import { NotificationService } from '@/modules/notifications/notification.service';
 
 @Injectable()
 export class BillReminderJob {
@@ -17,10 +17,6 @@ export class BillReminderJob {
 
     private readonly notificationService: NotificationService,
   ) {}
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // CRON — every day at 9:00 AM IST
-  // ─────────────────────────────────────────────────────────────────────────────
 
   @Cron('0 9 * * *', { timeZone: 'Asia/Kolkata' })
   async execute(): Promise<void> {
@@ -42,7 +38,6 @@ export class BillReminderJob {
 
       this.logger.log(`[BillReminder] Today (IST): ${todayStr}`);
 
-      // Fetch all PENDING and OVERDUE bills (not soft-deleted)
       const bills = await this.billModel.findAll({
         where: {
           status: { [Op.in]: [BillStatus.PENDING, BillStatus.OVERDUE] },
@@ -77,7 +72,6 @@ export class BillReminderJob {
           `[BillReminder] "${bill.title}" | id=${bill.id} | dueDate=${dueDateStr} | diffDays=${diffDays}`,
         );
 
-        // ── DUE TODAY ───────────────────────────────────────────────────────
         if (diffDays === 0) {
           const since = new Date(todayStr + 'T00:00:00Z');
           const alreadySent =
@@ -109,11 +103,9 @@ export class BillReminderJob {
             created++;
           }
 
-          continue; // don't also check reminderDaysBefore for today
+          continue;
         }
 
-        // ── UPCOMING — check each reminder day ──────────────────────────────
-        // for (const reminderDay of bill.reminderDaysBefore) {
         const reminderDays = bill.reminderDaysBefore?.length
           ? bill.reminderDaysBefore
           : [3, 2, 1];
@@ -121,7 +113,6 @@ export class BillReminderJob {
         for (const reminderDay of reminderDays) {
           if (diffDays !== reminderDay) continue;
 
-          // Dedup: one UPCOMING notification per bill per day
           const since = new Date(todayStr + 'T00:00:00Z');
           const alreadySent =
             await this.notificationService.notificationExistsSince(
@@ -148,7 +139,6 @@ export class BillReminderJob {
             referenceType: 'BILL',
           });
 
-          // Update lastReminderSentAt to avoid double-processing same bill same day
           await bill.update({ lastReminderSentAt: new Date() });
 
           this.logger.log(
@@ -165,7 +155,7 @@ export class BillReminderJob {
     } catch (error) {
       this.logger.error(
         '[BillReminder] ❌ Unhandled error.',
-        error instanceof Error ? error.stack : String(error),
+        error instanceof Error ? error.message : String(error),
       );
     }
 

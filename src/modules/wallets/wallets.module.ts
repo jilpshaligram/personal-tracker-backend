@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { WalletController } from './controllers/wallet.controller';
-import { WalletService } from './services/wallet.service';
-import { Wallet } from './schemas/wallet.schema';
-import { SecurityModule } from '../../infrastructure/security/security.module';
-
+import { WalletController } from '@/modules/wallets/wallet.controller';
+import { WalletService } from '@/modules/wallets/wallet.service';
+import { Wallet } from '@/modules/wallets/wallet.schema';
 @Module({
-  imports: [SequelizeModule.forFeature([Wallet]), SecurityModule],
+  imports: [SequelizeModule.forFeature([Wallet])],
   controllers: [WalletController],
   providers: [WalletService],
   exports: [WalletService],

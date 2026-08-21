@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsEnum, IsOptional } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { QueryDto } from '../../../common/dto/query.dto';
+import { QueryDto } from '@/common/dto/query.dto';
 
 export class QueryDocumentCategoryDto extends QueryDto {
   @ApiPropertyOptional({

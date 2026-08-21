@@ -1,5 +1,5 @@
 import { IsDateString, IsInt, IsOptional, IsUUID } from 'class-validator';
-import { QueryDto } from '../../../common/dto/query.dto';
+import { QueryDto } from '@/common/dto/query.dto';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 

@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { createBudgetSchema } from './create-budget.dto';
-import { BudgetPeriod } from '../enums/budget-period.enum';
+import { createBudgetSchema } from '@/modules/budgets/dto/create-budget.dto';
+import { BudgetPeriod } from '@/modules/budgets/enums/budget-period.enum';
 
 export const updateBudgetSchema = createBudgetSchema.partial().strict();
 

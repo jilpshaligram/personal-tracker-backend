@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   v2 as cloudinary,
   UploadApiResponse,
@@ -8,50 +9,86 @@ import { Readable } from 'stream';
 
 @Injectable()
 export class CloudinaryService {
+  constructor(private readonly configService: ConfigService) {
+    const cloudName =
+      this.configService.get<string>('cloudinary.cloudName') ||
+      process.env.CLOUDINARY_CLOUD_NAME ||
+      '';
+    const apiKey =
+      this.configService.get<string>('cloudinary.apiKey') ||
+      process.env.CLOUDINARY_API_KEY ||
+      '';
+    const apiSecret =
+      this.configService.get<string>('cloudinary.apiSecret') ||
+      process.env.CLOUDINARY_API_SECRET ||
+      '';
+
+    const config: Record<string, unknown> = {
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+      secure: true,
+    };
+
+    if (process.env.HTTP_PROXY || process.env.HTTPS_PROXY) {
+      config.api_proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    }
+
+    if (process.env.NODE_EXTRA_CA_CERTS) {
+      config.agent_options = { ca: process.env.NODE_EXTRA_CA_CERTS };
+    }
+
+    cloudinary.config(config);
+  }
+
   uploadFile(
     file: Express.Multer.File,
     folder: string = 'documents',
   ): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
+      if (!file || !file.buffer) {
+        return reject(new BadRequestException('No file buffer provided'));
+      }
+
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder,
           resource_type: 'auto',
         },
-        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
+        (
+          error: UploadApiErrorResponse | undefined,
+          result: UploadApiResponse | undefined,
+        ) => {
           if (error) {
             console.error('Cloudinary Upload Error:', error);
-
-            // Handle SSL certificate errors specifically
-            if (
-              error.message.includes('unable to verify the first certificate')
-            ) {
-              return reject(
-                new BadRequestException(
-                  'Cloudinary SSL certificate verification failed. ' +
-                    'This is likely due to missing system certificates or proxy/firewall settings. ' +
-                    'Try setting NODE_TLS_REJECT_UNAUTHORIZED=0 (development only) or ' +
-                    'adding --use-system-ca flag when starting Node.js.',
-                ),
-              );
-            }
-
             return reject(
-              new BadRequestException(`Cloudinary Error: ${error.message}`),
+              new BadRequestException(
+                `Cloudinary Error: ${error.message || 'Upload failed'}`,
+              ),
             );
           }
-
+          if (!result) {
+            return reject(
+              new BadRequestException(
+                'Cloudinary upload returned empty response',
+              ),
+            );
+          }
           resolve(result);
         },
       );
+
+      uploadStream.on('error', (err) => {
+        console.error('Cloudinary stream error:', err);
+        reject(
+          new BadRequestException(`Cloudinary stream error: ${err.message}`),
+        );
+      });
 
       Readable.from(file.buffer).pipe(uploadStream);
     });
   }
 
-  /**
-   * Alternative upload method that handles SSL issues
-   */
   async uploadFileWithRetry(
     file: Express.Multer.File,
     folder: string = 'documents',
@@ -77,7 +114,6 @@ export class CloudinaryService {
           break;
         }
 
-        // Wait before retry (exponential backoff)
         await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
       }
     }
@@ -88,22 +124,22 @@ export class CloudinaryService {
   getViewUrl(
     publicId: string,
     resourceType: 'image' | 'raw' | 'video' = 'image',
+    fallbackUrl?: string,
   ): string {
-    if (resourceType === 'raw') {
-      return cloudinary.url(publicId, {
-        resource_type: 'raw',
-        type: 'upload',
-        secure: true,
-        flags: 'inline',
-        format: 'pdf',
-      });
+    if (
+      fallbackUrl &&
+      typeof fallbackUrl === 'string' &&
+      fallbackUrl.startsWith('http')
+    ) {
+      return fallbackUrl;
     }
+    if (!publicId) return fallbackUrl || '';
+    if (publicId.startsWith('http')) return publicId;
 
     return cloudinary.url(publicId, {
       resource_type: resourceType,
       type: 'upload',
       secure: true,
-      flags: 'inline',
     });
   }
 
@@ -111,6 +147,7 @@ export class CloudinaryService {
     publicId: string,
     resourceType: 'image' | 'raw' | 'video' | 'auto' = 'image',
   ): Promise<void> {
+    if (!publicId) return;
     try {
       if (resourceType === 'auto') {
         await Promise.allSettled([

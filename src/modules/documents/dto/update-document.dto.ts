@@ -1,6 +1,9 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { z } from 'zod';
-import { CreateDocumentDto, createDocumentSchema } from './create-document.dto';
+import {
+  CreateDocumentDto,
+  createDocumentSchema,
+} from '@/modules/documents/dto/create-document.dto';
 
 export const updateDocumentSchema = createDocumentSchema.partial();
 

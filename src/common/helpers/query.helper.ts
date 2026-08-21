@@ -1,8 +1,8 @@
 import { Op, Order, WhereOptions } from 'sequelize';
 
-import { QueryDto } from '../dto/query.dto';
-import { QueryOptions } from '../interfaces/query-options.interface';
-import { QueryResult } from '../interfaces/query-result.interface';
+import { QueryDto } from '@/common/dto/query.dto';
+import { QueryOptions } from '@/common/interfaces/query-options.interface';
+import { QueryResult } from '@/common/interfaces/query-result.interface';
 
 export class QueryHelper {
   static build(query: QueryDto, options: QueryOptions): QueryResult {
@@ -18,8 +18,6 @@ export class QueryHelper {
 
     const where: WhereOptions = {};
 
-    // SEARCH
-
     if (search && options.searchableFields && options.searchableFields.length) {
       Object.assign(where, {
         [Op.or]: options.searchableFields.map((field) => ({
@@ -30,8 +28,6 @@ export class QueryHelper {
       });
     }
 
-    // FILTERS
-
     if (options.filterableFields) {
       for (const field of options.filterableFields) {
         const value = (query as unknown as Record<string, unknown>)[field];
@@ -41,8 +37,6 @@ export class QueryHelper {
         }
       }
     }
-
-    // DATE RANGE
 
     if (startDate || endDate) {
       const createdAtFilter: Record<symbol, Date> = {};
@@ -60,8 +54,6 @@ export class QueryHelper {
       (where as Record<string, unknown>)[dateField] = createdAtFilter;
     }
 
-    // SORTING
-
     let order: Order = [
       [
         options.defaultSortBy ?? 'createdAt',
@@ -72,8 +64,6 @@ export class QueryHelper {
     if (sortBy && options.sortableFields?.includes(sortBy)) {
       order = [[sortBy, (sortOrder ?? 'DESC').toUpperCase() as 'ASC' | 'DESC']];
     }
-
-    // PAGINATION
 
     const offset = (page - 1) * limit;
 

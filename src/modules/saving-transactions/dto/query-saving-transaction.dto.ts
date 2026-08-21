@@ -2,8 +2,8 @@ import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-import { QueryDto } from '../../../common/dto/query.dto';
-import { SavingTransactionType } from '../enums/saving-transaction-type.enum';
+import { QueryDto } from '@/common/dto/query.dto';
+import { SavingTransactionType } from '@/modules/saving-transactions/enums/saving-transaction-type.enum';
 
 export class QuerySavingTransactionDto extends QueryDto {
   @ApiPropertyOptional({

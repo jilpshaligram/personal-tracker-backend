@@ -1,8 +1,8 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { QueryDto } from '../../../common/dto/query.dto';
+import { QueryDto } from '@/common/dto/query.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { TransactionType } from '../enums/transaction-type.enum';
-import { PaymentMethod } from '../enums/payment-method.enum';
+import { TransactionType } from '@/modules/transactions/enums/transaction-type.enum';
+import { PaymentMethod } from '@/modules/transactions/enums/payment-method.enum';
 
 export class QueryTransactionDto extends QueryDto {
   @ApiPropertyOptional({

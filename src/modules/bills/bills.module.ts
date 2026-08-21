@@ -1,18 +1,17 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { BillController } from './controllers/bill.controller';
-import { BillService } from './services/bill.service';
-import { Bill } from './schemas/bill.schema';
-import { BillHistory } from '../bill-history/schemas/bill-history.schema';
-import { Transaction } from '../transactions/schemas/transaction.schema';
-import { BillHistoryModule } from '../bill-history/bill-history.module';
-import { BillReminderJob } from '../../jobs/bill-reminder.job';
-import { BillOverdueJob } from '../../jobs/bill-overdue.job';
-import { SecurityModule } from '../../infrastructure/security/security.module';
-import { CloudinaryModule } from '../../common/cloudinary/cloudinary.module';
-import { WalletsModule } from '../wallets/wallets.module';
-import { TransactionModule } from '../transactions/transaction.module';
-import { NotificationsModule } from '../notifications/notifications.module';
+import { BillController } from '@/modules/bills/bill.controller';
+import { BillService } from '@/modules/bills/bill.service';
+import { Bill } from '@/modules/bills/bill.schema';
+import { BillHistory } from '@/modules/bill-history/bill-history.schema';
+import { Transaction } from '@/modules/transactions/transaction.schema';
+import { BillHistoryModule } from '@/modules/bill-history/bill-history.module';
+import { BillReminderJob } from '@/jobs/bill-reminder.job';
+import { BillOverdueJob } from '@/jobs/bill-overdue.job';
+import { CloudinaryService } from '@/common/cloudinary/cloudinary.service';
+import { WalletsModule } from '@/modules/wallets/wallets.module';
+import { TransactionModule } from '@/modules/transactions/transaction.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,12 +19,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
     forwardRef(() => BillHistoryModule),
     WalletsModule,
     TransactionModule,
-    SecurityModule,
-    CloudinaryModule,
     NotificationsModule,
   ],
   controllers: [BillController],
-  providers: [BillService, BillReminderJob, BillOverdueJob],
+  providers: [BillService, CloudinaryService, BillReminderJob, BillOverdueJob],
   exports: [BillService],
 })
 export class BillsModule {}

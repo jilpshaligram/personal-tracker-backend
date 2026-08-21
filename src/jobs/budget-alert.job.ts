@@ -1,15 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
-import { Budget } from '../modules/budgets/schemas/budget.schema';
-import { BudgetService } from '../modules/budgets/services/budget.service';
-import { NotificationService } from '../modules/notifications/services/notification.service';
+import { Budget } from '@/modules/budgets/budget.schema';
+import { BudgetService } from '@/modules/budgets/budget.service';
+import { NotificationService } from '@/modules/notifications/notification.service';
 
 @Injectable()
 export class BudgetAlertJob {
   private readonly logger = new Logger(BudgetAlertJob.name);
 
-  // 80% threshold
   private readonly ALERT_THRESHOLD = 0.8;
 
   constructor(
@@ -19,7 +18,7 @@ export class BudgetAlertJob {
     private readonly notificationService: NotificationService,
   ) {}
 
-  @Cron('0 9 * * *', { timeZone: 'Asia/Kolkata' }) // Daily at 10 AM IST
+  @Cron('0 9 * * *', { timeZone: 'Asia/Kolkata' })
   async execute(): Promise<void> {
     return this.runCheck();
   }
@@ -40,7 +39,6 @@ export class BudgetAlertJob {
 
       this.logger.log(`[BudgetAlert] Today (IST): ${todayStr}`);
 
-      // Find active budgets
       const activeBudgets = await this.budgetModel.findAll({
         where: { isActive: true },
       });
@@ -52,7 +50,6 @@ export class BudgetAlertJob {
       let alertsSent = 0;
 
       for (const budget of activeBudgets) {
-        // Skip if budget hasn't started or already ended before today
         const startMs = new Date(budget.startDate + 'T00:00:00Z').getTime();
         const endMs = new Date(budget.endDate + 'T00:00:00Z').getTime();
         if (todayMs < startMs || todayMs > endMs) continue;
@@ -75,7 +72,6 @@ export class BudgetAlertJob {
 
         const periodStart = new Date(budget.startDate + 'T00:00:00Z');
 
-        // 1. BUDGET_EXCEEDED
         if (spentAmount > budget.amount) {
           const alreadySent =
             await this.notificationService.notificationExistsSince(
@@ -99,9 +95,7 @@ export class BudgetAlertJob {
             );
             alertsSent++;
           }
-        }
-        // 2. BUDGET_THRESHOLD (80%)
-        else if (spentRatio >= this.ALERT_THRESHOLD) {
+        } else if (spentRatio >= this.ALERT_THRESHOLD) {
           const alreadySent =
             await this.notificationService.notificationExistsSince(
               budget.userId,
@@ -126,10 +120,7 @@ export class BudgetAlertJob {
           }
         }
 
-        // 3. BUDGET_ENDING (3 days left, spent > 0)
         if (remainingDays <= 3 && remainingDays >= 0 && spentAmount > 0) {
-          // We only want to notify once when it enters the 3-day window
-          // Check if sent in the last 4 days (to cover the 3-day window)
           const windowStart = new Date(todayMs - 4 * 86_400_000);
           const sinceDate =
             windowStart > periodStart ? windowStart : periodStart;
@@ -163,7 +154,7 @@ export class BudgetAlertJob {
     } catch (error) {
       this.logger.error(
         '[BudgetAlert] ❌ Unhandled error.',
-        error instanceof Error ? error.stack : String(error),
+        error instanceof Error ? error.message : String(error),
       );
     }
     this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

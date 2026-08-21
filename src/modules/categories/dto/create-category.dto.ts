@@ -1,14 +1,7 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
-import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
+import { CategoryTransactionType } from '@/modules/categories/enums/category-transaction-type.enum';
 
-/**
- * @schema createCategorySchema
- *
- * @description
- * Zod schema for validating the incoming payload when creating a new custom category.
- * Used by the ZodValidationPipe in the Controller.
- */
 export const createCategorySchema = z.object({
   name: z
     .string()

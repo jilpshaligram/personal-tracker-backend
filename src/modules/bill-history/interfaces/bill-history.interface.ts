@@ -1,4 +1,4 @@
-import { PaymentMethod } from '../../bills/enums/payment-method.enum';
+import { PaymentMethod } from '@/modules/bills/enums/payment-method.enum';
 
 export enum BillHistoryStatus {
   PAID = 'PAID',

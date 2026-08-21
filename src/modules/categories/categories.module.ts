@@ -1,17 +1,12 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { CategoriesService } from './services/categories.service';
-import { CategoriesController } from './controllers/categories.controller';
-import { Category } from './schemas/category.schema';
-import { SecurityModule } from '../../infrastructure/security/security.module';
-
+import { CategoriesService } from '@/modules/categories/categories.service';
+import { CategoriesController } from '@/modules/categories/categories.controller';
+import { Category } from '@/modules/categories/category.schema';
 @Module({
-  imports: [
-    SequelizeModule.forFeature([Category]),
-    SecurityModule, // Provides SecurityService for AuthGuard
-  ],
+  imports: [SequelizeModule.forFeature([Category])],
   controllers: [CategoriesController],
   providers: [CategoriesService],
-  exports: [CategoriesService, SequelizeModule], // In case TransactionsModule needs them
+  exports: [CategoriesService, SequelizeModule],
 })
 export class CategoriesModule {}

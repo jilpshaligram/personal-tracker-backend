@@ -1,5 +1,5 @@
-import { BillHistory } from '../schemas/bill-history.schema';
-import { BillHistoryResponseDto } from '../dto/bill-history-response.dto';
+import { BillHistory } from '@/modules/bill-history/bill-history.schema';
+import { BillHistoryResponseDto } from '@/modules/bill-history/dto/bill-history-response.dto';
 
 export class BillHistoryMapper {
   static toResponseDto(history: BillHistory): BillHistoryResponseDto {

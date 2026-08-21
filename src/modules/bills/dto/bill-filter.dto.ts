@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { BillStatus } from '../enums/bill-status.enum';
+import { BillStatus } from '@/modules/bills/enums/bill-status.enum';
 
 export const billFilterSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
