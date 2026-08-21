@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -11,13 +10,24 @@ import { ISavingGoal } from '../interfaces/saving-goal.interface';
 import { CreateSavingGoalDto } from '../dto/create-saving-goal.dto';
 import { UpdateSavingGoalDto } from '../dto/update-saving-goal.dto';
 import { Transaction, FindOptions } from 'sequelize';
+import { InjectConnection } from '@nestjs/sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { WalletService } from '../../wallets/services/wallet.service';
+import { Transaction as TransactionModel } from '../../transactions/schemas/transaction.schema';
+import { TransactionType } from '../../transactions/enums/transaction-type.enum';
+import { PaymentMethod } from '../../transactions/enums/payment-method.enum';
 
 @Injectable()
 export class SavingGoalService {
   constructor(
     @InjectModel(SavingGoal)
     private readonly savingGoalModel: typeof SavingGoal,
+    @InjectModel(TransactionModel)
+    private readonly transactionModel: typeof TransactionModel,
+    @InjectConnection()
+    private readonly sequelize: Sequelize,
+    private readonly walletService: WalletService,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -95,46 +105,100 @@ export class SavingGoalService {
     userId: string,
     dto: UpdateSavingGoalDto,
   ): Promise<ISavingGoal> {
-    const goal = await this.findGoalOrFail(id, userId);
+    return this.sequelize.transaction(async (t) => {
+      const goal = await this.findGoalOrFail(id, userId, t);
 
-    // Prevent updating a completed goal's financial target without explicit intent
-    if (
-      goal.status === SavingGoalStatus.COMPLETED &&
-      dto.targetAmount !== undefined
-    ) {
-      throw new BadRequestException({
-        success: false,
-        message:
-          'Cannot change targetAmount on a completed goal. Cancel it first.',
-        errors: [],
+      // Allow updating a completed goal's financial target.
+      // If the target is increased above the saved amount, it will transition back to ACTIVE.
+
+      // Build the update payload — never touch savedAmount / isCompleted / completedAt here
+      const updateData: Partial<SavingGoal> = {
+        updatedBy: userId,
+      };
+
+      if (dto.title !== undefined) updateData.title = dto.title;
+      if (dto.autoReminder !== undefined)
+        updateData.autoReminder = dto.autoReminder;
+      if (dto.reminderFrequency !== undefined)
+        updateData.reminderFrequency =
+          dto.reminderFrequency as unknown as SavingGoal['reminderFrequency'];
+      if (dto.targetDate !== undefined) updateData.targetDate = dto.targetDate;
+      if (dto.status !== undefined)
+        updateData.status = dto.status as SavingGoalStatus;
+
+      // Handle Target Amount Reduction and Wallet Unblocking
+      if (dto.targetAmount !== undefined) {
+        const currentSavedAmount = Number(goal.savedAmount);
+
+        if (dto.targetAmount < currentSavedAmount) {
+          const excessAmount = currentSavedAmount - dto.targetAmount;
+
+          const wallet = await this.walletService.findByUserIdForUpdate(
+            userId,
+            t,
+          );
+          if (!wallet) {
+            throw new NotFoundException('Wallet not found');
+          }
+
+          // 1. Release wallet blocks
+          await wallet.update(
+            {
+              blockedAmount: Number(wallet.blockedAmount) - excessAmount,
+            },
+            { transaction: t },
+          );
+
+          // 2. Create the TRANSFER_FROM_SAVING transaction
+          await this.transactionModel.create(
+            {
+              userId,
+              walletId: wallet.id,
+              savingGoalId: goal.id,
+              type: TransactionType.TRANSFER_FROM_SAVING,
+              amount: excessAmount,
+              transactionDate: new Date(new Date().toISOString().split('T')[0]), // ensures YYYY-MM-DD
+              paymentMethod: PaymentMethod.CASH,
+              note: `Automatic release: target reduced for ${dto.title || goal.title}`,
+            },
+            { transaction: t },
+          );
+
+          // 3. Set new goal targets exactly to dto.targetAmount
+          updateData.targetAmount = dto.targetAmount;
+          updateData.savedAmount = dto.targetAmount;
+          updateData.remainingAmount = 0;
+          updateData.isCompleted = true;
+          updateData.status = SavingGoalStatus.COMPLETED;
+          if (!goal.completedAt) {
+            updateData.completedAt = new Date();
+          }
+        } else {
+          // Normal target amount increase/edit
+          updateData.targetAmount = dto.targetAmount;
+          updateData.remainingAmount = dto.targetAmount - currentSavedAmount;
+
+          if (
+            dto.targetAmount > currentSavedAmount &&
+            goal.status === SavingGoalStatus.COMPLETED
+          ) {
+            updateData.status = SavingGoalStatus.ACTIVE;
+            updateData.isCompleted = false;
+            updateData.completedAt = null;
+          }
+        }
+      }
+
+      await this.savingGoalModel.update(updateData, {
+        where: { id },
+        transaction: t,
       });
-    }
 
-    // Build the update payload — never touch savedAmount / isCompleted / completedAt here
-    const updateData: Partial<SavingGoal> = {
-      updatedBy: userId,
-    };
-
-    if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.autoReminder !== undefined)
-      updateData.autoReminder = dto.autoReminder;
-    if (dto.reminderFrequency !== undefined)
-      updateData.reminderFrequency =
-        dto.reminderFrequency as unknown as SavingGoal['reminderFrequency'];
-    if (dto.targetDate !== undefined) updateData.targetDate = dto.targetDate;
-    if (dto.status !== undefined)
-      updateData.status = dto.status as SavingGoalStatus;
-
-    // Recalculate remaining amount if targetAmount changes
-    if (dto.targetAmount !== undefined) {
-      updateData.targetAmount = dto.targetAmount;
-      updateData.remainingAmount = dto.targetAmount - Number(goal.savedAmount);
-    }
-
-    await this.savingGoalModel.update(updateData, { where: { id } });
-
-    const updated = await this.savingGoalModel.findByPk(id);
-    return this.toSafeGoal(updated!);
+      const updated = await this.savingGoalModel.findByPk(id, {
+        transaction: t,
+      });
+      return this.toSafeGoal(updated!);
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -147,6 +211,7 @@ export class SavingGoalService {
    */
   async remove(id: string, userId: string): Promise<void> {
     const goal = await this.findGoalOrFail(id, userId);
+    await goal.update({ status: SavingGoalStatus.CANCELLED });
     await goal.destroy(); // paranoid: true → sets deletedAt
   }
 

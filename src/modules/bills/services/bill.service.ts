@@ -23,8 +23,7 @@ import { PaymentMethod } from '../enums/payment-method.enum';
 import { BillHistoryService } from '../../bill-history/services/bill-history.service';
 import { BillHistoryStatus } from '../../bill-history/interfaces/bill-history.interface';
 import { CloudinaryService } from '../../../common/cloudinary/cloudinary.service';
-import { WalletRepository } from '../../wallets/repositories/wallet.repository';
-import { TransactionRepository } from '../../transactions/repositories/transaction.repository';
+import { WalletService } from '../../wallets/services/wallet.service';
 import { TransactionType } from '../../transactions/enums/transaction-type.enum';
 import { PaymentMethod as TxPaymentMethod } from '../../transactions/enums/payment-method.enum';
 
@@ -35,8 +34,9 @@ export class BillService {
     @InjectModel(Bill)
     private readonly billModel: typeof Bill,
     private readonly billHistoryService: BillHistoryService,
-    private readonly walletRepository: WalletRepository,
-    private readonly transactionRepository: TransactionRepository,
+    private readonly walletService: WalletService,
+    @InjectModel(TransactionModel)
+    private readonly transactionModel: typeof TransactionModel,
     private readonly sequelize: Sequelize,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
@@ -412,7 +412,7 @@ export class BillService {
       let createdTransaction: TransactionModel | null = null;
 
       if (dto.createTransaction) {
-        const wallet = await this.walletRepository.findByUserIdForUpdate(
+        const wallet = await this.walletService.findByUserIdForUpdate(
           userId,
           transaction,
         );
@@ -437,13 +437,9 @@ export class BillService {
           });
         }
 
-        await this.walletRepository.update(
-          wallet.id,
-          { currentBalance: currentBalance - dto.amountPaid } as Record<
-            string,
-            any
-          >,
-          transaction,
+        await wallet.update(
+          { currentBalance: currentBalance - dto.amountPaid },
+          { transaction },
         );
 
         let txPaymentMethod: TxPaymentMethod;
@@ -464,18 +460,18 @@ export class BillService {
             txPaymentMethod = TxPaymentMethod.CASH;
         }
 
-        createdTransaction = await this.transactionRepository.create(
-          userId,
+        createdTransaction = await this.transactionModel.create(
           {
-            wallet_id: wallet.id,
-            category_id: bill.categoryId,
+            userId,
+            walletId: wallet.id,
+            categoryId: bill.categoryId,
             type: TransactionType.EXPENSE,
             amount: dto.amountPaid,
-            payment_method: txPaymentMethod,
-            transaction_date: new Date().toISOString().split('T')[0],
+            paymentMethod: txPaymentMethod,
+            transactionDate: new Date(new Date().toISOString().split('T')[0]),
             note: dto.remarks || `Bill payment: ${bill.title}`,
           },
-          transaction,
+          { transaction },
         );
       }
 

@@ -2,7 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { TransactionController } from './controllers/transaction.controller';
 import { TransactionService } from './services/transaction.service';
-import { TransactionRepository } from './repositories/transaction.repository';
 import { Transaction } from './schemas/transaction.schema';
 import { WalletsModule } from '../wallets/wallets.module';
 import { CategoriesModule } from '../categories/categories.module';
@@ -21,7 +20,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     NotificationsModule,
   ],
   controllers: [TransactionController],
-  providers: [TransactionService, TransactionRepository],
-  exports: [TransactionService, TransactionRepository],
+  providers: [TransactionService],
+  exports: [TransactionService, SequelizeModule],
 })
 export class TransactionModule {}

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
 import { Budget } from '../modules/budgets/schemas/budget.schema';
-import { BudgetRepository } from '../modules/budgets/repositories/budget.repository';
+import { BudgetService } from '../modules/budgets/services/budget.service';
 import { NotificationService } from '../modules/notifications/services/notification.service';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class BudgetAlertJob {
   constructor(
     @InjectModel(Budget)
     private readonly budgetModel: typeof Budget,
-    private readonly budgetRepository: BudgetRepository,
+    private readonly budgetService: BudgetService,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -57,7 +57,7 @@ export class BudgetAlertJob {
         const endMs = new Date(budget.endDate + 'T00:00:00Z').getTime();
         if (todayMs < startMs || todayMs > endMs) continue;
 
-        const spentAmount = await this.budgetRepository.getSpentAmountForBudget(
+        const spentAmount = await this.budgetService.getSpentAmountForBudget(
           budget.userId,
           budget.startDate,
           budget.endDate,

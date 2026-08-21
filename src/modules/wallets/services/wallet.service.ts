@@ -3,10 +3,11 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { WalletRepository } from '../repositories/wallet.repository';
+import { InjectModel } from '@nestjs/sequelize';
 import { CreateWalletDto } from '../dto/create-wallet.dto';
 import { UpdateWalletDto } from '../dto/update-wallet.dto';
 import { Wallet } from '../schemas/wallet.schema';
+import { Transaction } from 'sequelize';
 
 export interface WalletResponse {
   id: string;
@@ -20,24 +21,32 @@ export interface WalletResponse {
 
 @Injectable()
 export class WalletService {
-  constructor(private readonly walletRepository: WalletRepository) {}
+  constructor(
+    @InjectModel(Wallet)
+    private readonly walletModel: typeof Wallet,
+  ) {}
 
   async create(
     userId: string,
     createWalletDto: CreateWalletDto,
   ): Promise<Wallet> {
     // 1. Check if user already has a wallet
-    const existingWallet = await this.walletRepository.findByUserId(userId);
+    const existingWallet = await this.findByUserId(userId);
     if (existingWallet) {
       throw new ConflictException('User already has a primary wallet.');
     }
 
     // 2. Create the wallet
-    return this.walletRepository.create(userId, createWalletDto);
+    return this.walletModel.create({
+      userId,
+      currency: createWalletDto.currency,
+      currentBalance: 0,
+      blockedAmount: 0,
+    });
   }
 
   async getWallet(userId: string): Promise<WalletResponse> {
-    const wallet = await this.walletRepository.findByUserId(userId);
+    const wallet = await this.findByUserId(userId);
     if (!wallet) {
       throw new NotFoundException('Wallet not found for this user.');
     }
@@ -64,14 +73,17 @@ export class WalletService {
     userId: string,
     updateWalletDto: UpdateWalletDto,
   ): Promise<WalletResponse> {
-    const wallet = await this.walletRepository.findByUserId(userId);
+    const wallet = await this.findByUserId(userId);
     if (!wallet) {
       throw new NotFoundException('Wallet not found for this user.');
     }
 
-    const [updatedCount, updatedWallets] = await this.walletRepository.update(
-      wallet.id,
+    const [updatedCount, updatedWallets] = await this.walletModel.update(
       updateWalletDto,
+      {
+        where: { id: wallet.id },
+        returning: true,
+      },
     );
 
     if (updatedCount === 0 || !updatedWallets.length) {
@@ -94,5 +106,34 @@ export class WalletService {
       createdAt: updatedWallet.createdAt,
       updatedAt: updatedWallet.updatedAt,
     };
+  }
+
+  // --------------------------------------------------------------------------
+  // REPOSITORY METHODS INTEGRATED INTO SERVICE (Used by other services too)
+  // --------------------------------------------------------------------------
+
+  async findByUserId(
+    userId: string,
+    transaction?: Transaction,
+  ): Promise<Wallet | null> {
+    return this.walletModel.findOne({
+      where: { userId },
+      transaction,
+    });
+  }
+
+  /**
+   * Retrieves the wallet with a row-level lock for safe financial operations.
+   * MUST be used inside a Sequelize Transaction.
+   */
+  async findByUserIdForUpdate(
+    userId: string,
+    transaction: Transaction,
+  ): Promise<Wallet | null> {
+    return this.walletModel.findOne({
+      where: { userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
   }
 }

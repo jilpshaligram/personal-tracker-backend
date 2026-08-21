@@ -4,14 +4,18 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/sequelize';
-import { Sequelize, Transaction as SequelizeTransaction } from 'sequelize';
-import { TransactionRepository } from '../repositories/transaction.repository';
+import { InjectConnection, InjectModel } from '@nestjs/sequelize';
+import {
+  Op,
+  Sequelize,
+  Transaction as SequelizeTransaction,
+  WhereOptions,
+} from 'sequelize';
 import { CreateTransactionDto } from '../dto/create-transaction.dto';
 import { UpdateTransactionDto } from '../dto/update-transaction.dto';
 import { TransactionType } from '../enums/transaction-type.enum';
-import { WalletRepository } from '../../wallets/repositories/wallet.repository';
-import { CategoriesRepository } from '../../categories/repositories/categories.repository';
+import { WalletService } from '../../wallets/services/wallet.service';
+import { CategoriesService } from '../../categories/services/categories.service';
 import { SavingGoalService } from '../../saving-goals/services/saving-goal.service';
 import { CategoryTransactionType } from '../../categories/enums/category-transaction-type.enum';
 import { SavingGoalStatus } from '../../saving-goals/enums/saving-goal-status.enum';
@@ -20,15 +24,23 @@ import { QueryTransactionDto } from '../dto/query-transaction.dto';
 import { QueryHelper } from '../../../common/helpers/query.helper';
 import { TRANSACTION_QUERY_FIELDS } from '../constants/transaction-query-fields';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { Transaction } from '../schemas/transaction.schema';
+import { PaymentMethod } from '../enums/payment-method.enum';
+import { Category } from '../../categories/schemas/category.schema';
+import { Wallet } from '../../wallets/schemas/wallet.schema';
+import { ITransaction } from '../interfaces/transaction.interface';
+import { ICategory } from '../../categories/interfaces/category.interface';
+import { QueryResult } from '../../../common/interfaces/query-result.interface';
 
 @Injectable()
 export class TransactionService {
   constructor(
     @InjectConnection()
     private readonly sequelize: Sequelize,
-    private readonly transactionRepository: TransactionRepository,
-    private readonly walletRepository: WalletRepository,
-    private readonly categoriesRepository: CategoriesRepository,
+    @InjectModel(Transaction)
+    private readonly transactionModel: typeof Transaction,
+    private readonly walletService: WalletService,
+    private readonly categoriesService: CategoriesService,
     private readonly savingGoalService: SavingGoalService,
     private readonly notificationService: NotificationService,
   ) {}
@@ -37,10 +49,7 @@ export class TransactionService {
     // We execute the entire financial operation inside a PostgreSQL transaction.
     return this.sequelize.transaction(async (t: SequelizeTransaction) => {
       // 1. Validate and lock the wallet
-      const wallet = await this.walletRepository.findByUserIdForUpdate(
-        userId,
-        t,
-      );
+      const wallet = await this.walletService.findByUserIdForUpdate(userId, t);
       if (!wallet) {
         throw new NotFoundException('Wallet not found');
       }
@@ -58,7 +67,7 @@ export class TransactionService {
           // Validate category
           if (!dto.category_id)
             throw new BadRequestException('Category required for INCOME');
-          const category = await this.categoriesRepository.findOneById(
+          const category = await this.categoriesService.findOneById(
             dto.category_id,
           );
           if (!category) throw new NotFoundException('Category not found');
@@ -83,7 +92,7 @@ export class TransactionService {
           // Validate category
           if (!dto.category_id)
             throw new BadRequestException('Category required for EXPENSE');
-          const category = await this.categoriesRepository.findOneById(
+          const category = await this.categoriesService.findOneById(
             dto.category_id,
           );
           if (!category) throw new NotFoundException('Category not found');
@@ -241,20 +250,28 @@ export class TransactionService {
       }
 
       // 3. Persist Wallet Updates
-      await this.walletRepository.update(
-        wallet.id,
+      await wallet.update(
         {
           currentBalance: newCurrentBalance,
           blockedAmount: newBlockedAmount,
-        } as Record<string, any>,
-        t,
+        },
+        { transaction: t },
       );
 
       // 4. Create Transaction Record
-      const transaction = await this.transactionRepository.create(
-        userId,
-        dto,
-        t,
+      const transaction = await this.transactionModel.create(
+        {
+          userId,
+          walletId: dto.wallet_id,
+          categoryId: dto.category_id || null,
+          savingGoalId: dto.saving_goal_id || null,
+          type: dto.type,
+          amount: dto.amount,
+          paymentMethod: dto.payment_method || PaymentMethod.CASH,
+          note: dto.note || null,
+          transactionDate: new Date(dto.transaction_date),
+        },
+        { transaction: t },
       );
 
       return transaction;
@@ -264,7 +281,7 @@ export class TransactionService {
   async findAll(userId: string, query: QueryTransactionDto) {
     const queryResult = QueryHelper.build(query, TRANSACTION_QUERY_FIELDS);
 
-    const { count, rows } = await this.transactionRepository.findAllPaginated(
+    const { count, rows } = await this.findAllPaginated(
       userId,
       queryResult,
       query,
@@ -305,10 +322,9 @@ export class TransactionService {
   }
 
   async findOne(id: string, userId: string) {
-    const transaction = await this.transactionRepository.findOneByIdAndUserId(
-      id,
-      userId,
-    );
+    const transaction = await this.transactionModel.findOne({
+      where: { id, userId },
+    });
     if (!transaction) {
       throw new NotFoundException('Transaction not found');
     }
@@ -317,17 +333,14 @@ export class TransactionService {
 
   async update(id: string, userId: string, dto: UpdateTransactionDto) {
     return this.sequelize.transaction(async (t: SequelizeTransaction) => {
-      const oldTx = await this.transactionRepository.findByIdAndUserIdForUpdate(
-        id,
-        userId,
-        t,
-      );
+      const oldTx = await this.transactionModel.findOne({
+        where: { id, userId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
       if (!oldTx) throw new NotFoundException('Transaction not found');
 
-      const wallet = await this.walletRepository.findByUserIdForUpdate(
-        userId,
-        t,
-      );
+      const wallet = await this.walletService.findByUserIdForUpdate(userId, t);
       if (!wallet) throw new NotFoundException('Wallet not found');
 
       if (dto.wallet_id && wallet.id !== dto.wallet_id) {
@@ -376,7 +389,7 @@ export class TransactionService {
 
       if (newCategoryId) {
         const category =
-          await this.categoriesRepository.findOneById(newCategoryId);
+          await this.categoriesService.findOneById(newCategoryId);
         if (!category) throw new NotFoundException('Category not found');
         if (!category.is_active)
           throw new BadRequestException('Category is inactive');
@@ -590,14 +603,12 @@ export class TransactionService {
         }
       }
 
-      await this.walletRepository.update(
-        wallet.id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await wallet.update(
         {
           currentBalance: newCurrentBalance,
           blockedAmount: newBlockedAmount,
-        } as any,
-        t,
+        },
+        { transaction: t },
       );
 
       const updateData: {
@@ -630,18 +641,14 @@ export class TransactionService {
 
   async remove(id: string, userId: string) {
     return this.sequelize.transaction(async (t: SequelizeTransaction) => {
-      const transaction =
-        await this.transactionRepository.findByIdAndUserIdForUpdate(
-          id,
-          userId,
-          t,
-        );
+      const transaction = await this.transactionModel.findOne({
+        where: { id, userId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
       if (!transaction) throw new NotFoundException('Transaction not found');
 
-      const wallet = await this.walletRepository.findByUserIdForUpdate(
-        userId,
-        t,
-      );
+      const wallet = await this.walletService.findByUserIdForUpdate(userId, t);
       if (!wallet) throw new NotFoundException('Wallet not found');
 
       let newCurrentBalance = Number(wallet.currentBalance);
@@ -715,18 +722,183 @@ export class TransactionService {
         }
       }
 
-      await this.walletRepository.update(
-        wallet.id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await wallet.update(
         {
           currentBalance: newCurrentBalance,
           blockedAmount: newBlockedAmount,
-        } as any,
-        t,
+        },
+        { transaction: t },
       );
 
       await transaction.destroy({ transaction: t });
       return { success: true, message: 'Transaction deleted successfully' };
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // INTERNAL HELPERS
+  // --------------------------------------------------------------------------
+
+  private async findAllPaginated(
+    userId: string,
+    queryResult: QueryResult,
+    rawQuery: QueryTransactionDto,
+  ): Promise<{ rows: Transaction[]; count: number }> {
+    const where: WhereOptions<ITransaction> = {
+      ...(queryResult.where as WhereOptions<ITransaction>),
+      userId,
+    };
+
+    if (rawQuery.type && rawQuery.type !== 'ALL') {
+      (where as Record<string, unknown>).type = rawQuery.type;
+    }
+
+    if (rawQuery.startDate || rawQuery.endDate) {
+      const dateConditions: unknown[] = [];
+      if (rawQuery.startDate) {
+        dateConditions.push(
+          Sequelize.where(
+            Sequelize.cast(
+              Sequelize.col('Transaction.transaction_date'),
+              'DATE',
+            ),
+            {
+              [Op.gte]: rawQuery.startDate,
+            },
+          ),
+        );
+      }
+      if (rawQuery.endDate) {
+        dateConditions.push(
+          Sequelize.where(
+            Sequelize.cast(
+              Sequelize.col('Transaction.transaction_date'),
+              'DATE',
+            ),
+            {
+              [Op.lte]: rawQuery.endDate,
+            },
+          ),
+        );
+      }
+      const whereWithAnd = where as Record<symbol, unknown[]>;
+      if (Array.isArray(whereWithAnd[Op.and])) {
+        whereWithAnd[Op.and] = [...whereWithAnd[Op.and], ...dateConditions];
+      } else {
+        whereWithAnd[Op.and] = dateConditions;
+      }
+    }
+
+    const categoryWhere: WhereOptions<ICategory> = {};
+    if (rawQuery.category && rawQuery.category !== 'ALL') {
+      (categoryWhere as Record<string, unknown>).name = {
+        [Op.iLike]: `%${rawQuery.category}%`,
+      };
+    }
+
+    if (rawQuery.search) {
+      const searchStr = `%${rawQuery.search}%`;
+      (where as Record<symbol, unknown>)[Op.or] = [
+        { note: { [Op.iLike]: searchStr } },
+        Sequelize.where(
+          Sequelize.cast(Sequelize.col('Transaction.amount'), 'varchar'),
+          { [Op.iLike]: searchStr },
+        ),
+        Sequelize.where(
+          Sequelize.cast(Sequelize.col('Transaction.type'), 'varchar'),
+          { [Op.iLike]: searchStr },
+        ),
+        Sequelize.where(
+          Sequelize.cast(
+            Sequelize.col('Transaction.payment_method'),
+            'varchar',
+          ),
+          { [Op.iLike]: searchStr },
+        ),
+        Sequelize.where(
+          Sequelize.cast(
+            Sequelize.col('Transaction.transaction_date'),
+            'varchar',
+          ),
+          { [Op.iLike]: searchStr },
+        ),
+        { '$category.name$': { [Op.iLike]: searchStr } },
+        { '$savingGoal.title$': { [Op.iLike]: searchStr } },
+      ];
+    }
+
+    let order = queryResult.order;
+    if (rawQuery.sortBy) {
+      const sortDirection = (rawQuery.sortOrder || 'DESC').toUpperCase();
+      switch (rawQuery.sortBy) {
+        case 'categoryName':
+          order = [
+            [{ model: Category, as: 'category' }, 'name', sortDirection],
+          ];
+          break;
+        case 'savingGoalTitle':
+          order = [
+            [{ model: SavingGoal, as: 'savingGoal' }, 'title', sortDirection],
+          ];
+          break;
+        case 'currentBalance':
+          order = [
+            [{ model: Wallet, as: 'wallet' }, 'currentBalance', sortDirection],
+          ];
+          break;
+        case 'blockedAmount':
+          order = [
+            [{ model: Wallet, as: 'wallet' }, 'blockedAmount', sortDirection],
+          ];
+          break;
+        case 'availableBalance':
+          order = [
+            [
+              Sequelize.literal(
+                '"wallet"."current_balance" - "wallet"."blocked_amount"',
+              ),
+              sortDirection,
+            ],
+          ];
+          break;
+        case 'amount':
+        case 'transactionDate':
+        case 'createdAt':
+        case 'updatedAt':
+        case 'type':
+        case 'paymentMethod':
+        case 'note':
+          order = [[rawQuery.sortBy, sortDirection]];
+          break;
+      }
+    }
+
+    return this.transactionModel.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['name', 'type'],
+          where: Object.keys(categoryWhere).length ? categoryWhere : undefined,
+          required: Object.keys(categoryWhere).length > 0,
+        },
+        {
+          model: SavingGoal,
+          as: 'savingGoal',
+          attributes: ['title'],
+          required: false,
+        },
+        {
+          model: Wallet,
+          as: 'wallet',
+          attributes: ['currentBalance', 'blockedAmount'],
+          required: false,
+        },
+      ],
+      order,
+      offset: queryResult.offset,
+      limit: queryResult.limit,
     });
   }
 }
