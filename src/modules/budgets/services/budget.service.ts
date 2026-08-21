@@ -2,20 +2,26 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
-import { BudgetRepository } from '../repositories/budget.repository';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
+import { Budget } from '../schemas/budget.schema';
 import { CreateBudgetDto } from '../dto/create-budget.dto';
 import { UpdateBudgetDto } from '../dto/update-budget.dto';
 import { calculateBudgetPeriodDates } from '../../../common/utils/date.utils';
 
 @Injectable()
 export class BudgetService {
-  constructor(private readonly budgetRepository: BudgetRepository) {}
+  constructor(
+    @InjectModel(Budget)
+    private readonly budgetModel: typeof Budget,
+  ) {}
 
   async create(userId: string, data: CreateBudgetDto) {
     const { startDate, endDate } = calculateBudgetPeriodDates(data.period);
 
-    const isDuplicate = await this.budgetRepository.checkDuplicateBudget(
+    const isDuplicate = await this.checkDuplicateBudget(
       userId,
       data.period,
       startDate,
@@ -28,15 +34,45 @@ export class BudgetService {
       );
     }
 
-    return await this.budgetRepository.create(userId, data, startDate, endDate);
+    try {
+      return await this.budgetModel.create({
+        ...data,
+        startDate,
+        endDate,
+        userId,
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error creating budget', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   async findAll(userId: string) {
-    return await this.budgetRepository.findAllByUser(userId);
+    try {
+      return await this.budgetModel.findAll({
+        where: { userId },
+        order: [['createdAt', 'DESC']],
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error fetching budgets', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   async findOne(id: string, userId: string) {
-    const budget = await this.budgetRepository.findOneByIdAndUser(id, userId);
+    let budget: Budget | null;
+    try {
+      budget = await this.budgetModel.findOne({
+        where: { id, userId },
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error fetching budget', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     if (!budget) {
       throw new NotFoundException('Budget not found');
     }
@@ -58,7 +94,7 @@ export class BudgetService {
     }
 
     if (data.period) {
-      const isDuplicate = await this.budgetRepository.checkDuplicateBudget(
+      const isDuplicate = await this.checkDuplicateBudget(
         userId,
         period,
         startDate,
@@ -73,58 +109,51 @@ export class BudgetService {
       }
     }
 
-    const [affectedCount, [updatedBudget]] = await this.budgetRepository.update(
-      id,
-      userId,
-      data,
-      data.period && data.period !== budget.period ? startDate : undefined,
-      data.period && data.period !== budget.period ? endDate : undefined,
-    );
+    const updateData: Partial<Budget> = { ...data };
+    if (data.period && data.period !== budget.period) {
+      updateData.startDate = startDate;
+      updateData.endDate = endDate;
+    }
+
+    let affectedCount: number;
+    let updatedBudgets: Budget[];
+
+    try {
+      [affectedCount, updatedBudgets] = await this.budgetModel.update(
+        updateData,
+        {
+          where: { id, userId },
+          returning: true,
+        },
+      );
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error updating budget', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     if (affectedCount === 0) {
       throw new NotFoundException('Budget not found or could not be updated');
     }
 
-    return updatedBudget;
+    return updatedBudgets[0];
   }
 
   async remove(id: string, userId: string) {
     await this.findOne(id, userId); // Ensure it exists and belongs to user
-    await this.budgetRepository.softDelete(id, userId);
+    try {
+      await this.budgetModel.destroy({
+        where: { id, userId },
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error deleting budget', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
-  // async getCategoryBreakdown(id: string, userId: string) {
-  //   const budget = await this.findOne(id, userId);
-  //   const rawBreakdown = await this.budgetRepository.getCategoryBreakdown(
-  //     budget,
-  //     userId,
-  //   );
-
-  //   let spentAmount = 0;
-  //   const categories = rawBreakdown.map((item: any) => {
-  //     const amount = parseFloat(item.totalAmount) || 0;
-  //     spentAmount += amount;
-
-  //     return {
-  //       categoryId: item.categoryId,
-  //       categoryName: item['category.name'] || 'Unknown Category',
-  //       amount: amount,
-  //     };
-  //   });
-
-  //   return {
-  //     budgetAmount:
-  //       typeof budget.amount === 'string'
-  //         ? parseFloat(budget.amount)
-  //         : budget.amount,
-  //     spentAmount: spentAmount,
-  //     categories,
-  //   };
-  // }
-
   async getDashboardOverview(userId: string) {
-    const allActiveBudgets =
-      await this.budgetRepository.findLatestActiveBudgets(userId);
+    const allActiveBudgets = await this.findLatestActiveBudgets(userId);
 
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
@@ -133,7 +162,7 @@ export class BudgetService {
     for (const budget of allActiveBudgets) {
       const endDate = new Date(budget.endDate);
       if (endDate < currentDate) {
-        await this.budgetRepository.update(budget.id, userId, {
+        await this.update(budget.id, userId, {
           isActive: false,
         } as unknown as UpdateBudgetDto);
       } else {
@@ -153,7 +182,7 @@ export class BudgetService {
 
     const overviewItems = await Promise.all(
       latestBudgets.map(async (budget) => {
-        const spentAmount = await this.budgetRepository.getSpentAmountForBudget(
+        const spentAmount = await this.getSpentAmountForBudget(
           userId,
           budget.startDate,
           budget.endDate,
@@ -189,5 +218,92 @@ export class BudgetService {
     );
 
     return { budgets: overviewItems };
+  }
+
+  // --------------------------------------------------------------------------
+  // INTERNAL HELPERS
+  // --------------------------------------------------------------------------
+
+  private async checkDuplicateBudget(
+    userId: string,
+    period: string,
+    startDate: string,
+    endDate: string,
+    ignoreId?: string,
+  ): Promise<boolean> {
+    try {
+      const whereClause: Record<symbol | string, any> = {
+        userId,
+        period,
+        startDate,
+        endDate,
+        isActive: true,
+      };
+
+      if (ignoreId) {
+        whereClause.id = { [Op.ne]: ignoreId };
+      }
+
+      const count = await this.budgetModel.count({ where: whereClause });
+      return count > 0;
+    } catch (error: unknown) {
+      throw new InternalServerErrorException(
+        'Error checking for duplicate budget',
+        { description: error instanceof Error ? error.message : String(error) },
+      );
+    }
+  }
+
+  private async findLatestActiveBudgets(userId: string): Promise<Budget[]> {
+    try {
+      return await this.budgetModel.findAll({
+        where: { userId, isActive: true },
+        order: [['startDate', 'DESC']],
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Error fetching latest budgets', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async getSpentAmountForBudget(
+    userId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<number> {
+    try {
+      const result =
+        await this.budgetModel.sequelize!.models.Transaction.findAll({
+          attributes: [
+            [
+              this.budgetModel.sequelize!.fn(
+                'SUM',
+                this.budgetModel.sequelize!.col('amount'),
+              ),
+              'total',
+            ],
+          ],
+          where: {
+            userId,
+            type: 'EXPENSE',
+            transactionDate: {
+              [Op.gte]: startDate,
+              [Op.lte]: endDate,
+            },
+          },
+          raw: true,
+        });
+
+      const totalSpent = result.length
+        ? parseFloat((result[0] as unknown as { total: string }).total)
+        : 0;
+      return isNaN(totalSpent) ? 0 : totalSpent;
+    } catch (error: unknown) {
+      throw new InternalServerErrorException(
+        'Error fetching spent amount for budget',
+        { description: error instanceof Error ? error.message : String(error) },
+      );
+    }
   }
 }

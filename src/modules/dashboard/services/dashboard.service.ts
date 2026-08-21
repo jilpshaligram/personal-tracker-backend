@@ -15,7 +15,7 @@ import { SavingGoalStatus } from '../../saving-goals/enums/saving-goal-status.en
 
 import { BillService } from '../../bills/services/bill.service';
 import { SavingGoalService } from '../../saving-goals/services/saving-goal.service';
-import { WalletRepository } from '../../wallets/repositories/wallet.repository';
+import { WalletService } from '../../wallets/services/wallet.service';
 
 import { calculateBudgetPeriodDates } from '../../../common/utils/date.utils';
 
@@ -52,7 +52,7 @@ export class DashboardService {
 
     private readonly billService: BillService,
     private readonly savingGoalService: SavingGoalService,
-    private readonly walletRepository: WalletRepository,
+    private readonly walletService: WalletService,
   ) {}
 
   // DASHBOARD
@@ -84,7 +84,7 @@ export class DashboardService {
 
         this.getTotalExpense(userId, startDate, endDate),
 
-        this.walletRepository.findByUserId(userId),
+        this.walletService.findByUserId(userId),
 
         this.findActiveBudgetForPeriod(userId, normalizedPeriod, today),
 

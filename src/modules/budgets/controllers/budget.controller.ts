@@ -18,7 +18,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
 import { BudgetService } from '../services/budget.service';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { successResponse } from '../../../common/responses/api-response.helper';
