@@ -43,11 +43,6 @@ export class DocumentReminderService {
     this.logger.log('[DocumentReminder] Scheduler started.');
 
     try {
-      /**
-       * Get today's date as a YYYY-MM-DD string in IST.
-       * Using 'en-CA' locale gives us ISO format (YYYY-MM-DD).
-       * This avoids UTC vs local-server-timezone confusion entirely.
-       */
       const todayStr = new Date().toLocaleDateString('en-CA', {
         timeZone: 'Asia/Kolkata',
       });
