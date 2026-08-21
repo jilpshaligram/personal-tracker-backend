@@ -1,8 +1,8 @@
-import { BudgetPeriod } from '../../budgets/enums/budget-period.enum';
-import { BillStatus } from '../../bills/enums/bill-status.enum';
-import { SavingGoalStatus } from '../../saving-goals/enums/saving-goal-status.enum';
-import { TransactionType } from '../../transactions/enums/transaction-type.enum';
-import { PaymentMethod } from '../../transactions/enums/payment-method.enum';
+import { BudgetPeriod } from '@/modules/budgets/enums/budget-period.enum';
+import { BillStatus } from '@/modules/bills/enums/bill-status.enum';
+import { SavingGoalStatus } from '@/modules/saving-goals/enums/saving-goal-status.enum';
+import { TransactionType } from '@/modules/transactions/enums/transaction-type.enum';
+import { PaymentMethod } from '@/modules/transactions/enums/payment-method.enum';
 
 export interface IDashboardDateRange {
   startDate: string;

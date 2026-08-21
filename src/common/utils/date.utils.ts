@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { BudgetPeriod } from '../../modules/budgets/enums/budget-period.enum';
+import { BudgetPeriod } from '@/modules/budgets/enums/budget-period.enum';
 
 export function calculateBudgetPeriodDates(period: BudgetPeriod): {
   startDate: string;

@@ -1,4 +1,4 @@
-import { SavingTransactionType } from '../enums/saving-transaction-type.enum';
+import { SavingTransactionType } from '@/modules/saving-transactions/enums/saving-transaction-type.enum';
 
 export interface ISavingTransaction {
   id: string;

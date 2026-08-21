@@ -1,7 +1,7 @@
-import { BillStatus } from '../enums/bill-status.enum';
-import { RecurringType } from '../enums/recurring-type.enum';
-import { PaymentMethod } from '../enums/payment-method.enum';
-import { BillHistoryResponseDto } from '../../bill-history/dto/bill-history-response.dto';
+import { BillStatus } from '@/modules/bills/enums/bill-status.enum';
+import { RecurringType } from '@/modules/bills/enums/recurring-type.enum';
+import { PaymentMethod } from '@/modules/bills/enums/payment-method.enum';
+import { BillHistoryResponseDto } from '@/modules/bill-history/dto/bill-history-response.dto';
 
 export interface BillResponseDto {
   id: string;

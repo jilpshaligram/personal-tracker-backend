@@ -7,7 +7,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionType } from '../enums/action-type.enum';
+import { ActionType } from '@/modules/audit-logs/enums/action-type.enum';
 
 export class CreateAuditLogDto {
   @ApiProperty({

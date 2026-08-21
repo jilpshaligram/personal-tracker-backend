@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
-import { SecurityService } from '../../infrastructure/security/security.service';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
-import { User } from '../../modules/users/schemas/user.schema';
-import { UserStatus } from '../../modules/users/enums/user-status.enum';
-import { UserSession } from '../../modules/user-session/schemas/user-session.schema';
+import { SecurityService } from '@/infrastructure/security/security.service';
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+import { AuthenticatedRequest } from '@/common/interfaces/authenticated-request.interface';
+import { User } from '@/modules/users/user.schema';
+import { UserStatus } from '@/modules/users/enums/user-status.enum';
+import { UserSession } from '@/modules/user-session/user-session.schema';
+import type { IJwtPayload } from '@/common/interfaces/authenticated-request.interface';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -46,15 +47,23 @@ export class AuthGuard implements CanActivate {
     }
 
     if (!token && cookies) {
-      token = cookies.access_token ?? cookies.accessToken;
+      token = cookies.access_token ?? cookies.accessToken ?? cookies.token;
     }
 
     if (!token && request.headers.cookie) {
       const match = request.headers.cookie.match(
-        /(?:access_token|accessToken)=([^;]+)/,
+        /(?:access_token|accessToken|token)=([^;]+)/,
       );
       if (match) {
         token = decodeURIComponent(match[1]);
+      }
+    }
+
+    if (!token) {
+      const customHeader =
+        request.headers['x-access-token'] ?? request.headers['access_token'];
+      if (typeof customHeader === 'string') {
+        token = customHeader.trim();
       }
     }
 
@@ -86,7 +95,6 @@ export class AuthGuard implements CanActivate {
       });
     }
 
-    // 1. Verify user existence and active status in DB
     const user = await User.findByPk(payload.sub, {
       attributes: ['id', 'status', 'deletedAt'],
     });
@@ -100,7 +108,6 @@ export class AuthGuard implements CanActivate {
       });
     }
 
-    // 2. Verify active session in DB (if sessionId is present in payload)
     if (payload.sessionId) {
       const session = await UserSession.findOne({
         where: { id: payload.sessionId, isActive: true },
@@ -147,5 +154,83 @@ export class AuthGuard implements CanActivate {
       response.clearCookie(name, cookieOptions);
       response.clearCookie(name);
     }
+  }
+}
+
+@Injectable()
+export class AccessTokenGuard extends AuthGuard {}
+
+@Injectable()
+export class OnboardingGuard implements CanActivate {
+  constructor(private readonly securityService: SecurityService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    const authHeader = request.headers['authorization'];
+    const cookies = request.cookies as Record<string, string> | undefined;
+
+    let token: string | undefined;
+
+    if (authHeader) {
+      token = authHeader.replace(/^(Bearer\s+)+/i, '').trim();
+      if (!token) {
+        token = undefined;
+      }
+    }
+
+    if (!token && cookies) {
+      token =
+        cookies['onboardingToken'] ??
+        cookies['onboarding_token'] ??
+        cookies['onboardToken'];
+    }
+
+    if (!token && request.headers.cookie) {
+      const match = request.headers.cookie.match(
+        /(?:onboardingToken|onboarding_token|onboardToken)=([^;]+)/,
+      );
+      if (match) {
+        token = decodeURIComponent(match[1]);
+      }
+    }
+
+    if (!token) {
+      const customHeader =
+        request.headers['x-onboarding-token'] ??
+        request.headers['x-onboard-token'];
+      if (typeof customHeader === 'string') {
+        token = customHeader.trim();
+      }
+    }
+
+    if (!token) {
+      throw new UnauthorizedException({
+        success: false,
+        message: 'Onboarding token is required',
+        errors: [],
+      });
+    }
+
+    let payload: IJwtPayload;
+    try {
+      payload = await this.securityService.verifyAccessToken(token);
+    } catch {
+      throw new UnauthorizedException({
+        success: false,
+        message: 'Invalid or expired onboarding token',
+        errors: [],
+      });
+    }
+
+    if (payload.tokenType !== 'onboarding') {
+      throw new UnauthorizedException({
+        success: false,
+        message: 'Invalid token type for this action',
+        errors: [],
+      });
+    }
+
+    (request as Request & { user: unknown }).user = payload;
+    return true;
   }
 }

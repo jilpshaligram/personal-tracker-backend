@@ -1,7 +1,7 @@
-import { Bill } from '../schemas/bill.schema';
-import { BillResponseDto } from '../dto/bill-response.dto';
-import { BillHistoryResponseDto } from '../../bill-history/dto/bill-history-response.dto';
-import { BillHistoryMapper } from '../../bill-history/mapper/bill-history.mapper';
+import { Bill } from '@/modules/bills/bill.schema';
+import { BillResponseDto } from '@/modules/bills/dto/bill-response.dto';
+import { BillHistoryResponseDto } from '@/modules/bill-history/dto/bill-history-response.dto';
+import { BillHistoryMapper } from '@/modules/bill-history/mapper/bill-history.mapper';
 
 export class BillMapper {
   static toResponseDto(

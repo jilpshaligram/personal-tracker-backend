@@ -1,14 +1,12 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { TransactionController } from './controllers/transaction.controller';
-import { TransactionService } from './services/transaction.service';
-import { Transaction } from './schemas/transaction.schema';
-import { WalletsModule } from '../wallets/wallets.module';
-import { CategoriesModule } from '../categories/categories.module';
-import { SavingGoalsModule } from '../saving-goals/saving-goals.module';
-import { SecurityModule } from '../../infrastructure/security/security.module';
-
-import { NotificationsModule } from '../notifications/notifications.module';
+import { TransactionController } from '@/modules/transactions/transaction.controller';
+import { TransactionService } from '@/modules/transactions/transaction.service';
+import { Transaction } from '@/modules/transactions/transaction.schema';
+import { WalletsModule } from '@/modules/wallets/wallets.module';
+import { CategoriesModule } from '@/modules/categories/categories.module';
+import { SavingGoalsModule } from '@/modules/saving-goals/saving-goals.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,7 +14,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WalletsModule,
     CategoriesModule,
     forwardRef(() => SavingGoalsModule),
-    SecurityModule,
     NotificationsModule,
   ],
   controllers: [TransactionController],

@@ -1,1 +1,1 @@
-export * from './budget.interface';
+export * from '@/modules/budgets/interfaces/budget.interface';

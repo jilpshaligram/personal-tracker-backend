@@ -8,12 +8,11 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { AuditLogService } from '../../modules/audit-logs/services/audit-log.service';
-import { ActionType } from '../../modules/audit-logs/enums/action-type.enum';
-import { LoggerService } from '../../infrastructure/logging/logger.service';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { AUDIT_ACTION_KEY } from '../decorators/audit-action.decorator';
-import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
+import { AuditLogService } from '@/modules/audit-logs/audit-log.service';
+import { ActionType } from '@/modules/audit-logs/enums/action-type.enum';
+import { LoggerService } from '@/infrastructure/logging/logger.service';
+import { AUDIT_ACTION_KEY } from '@/common/decorators/audit-action.decorator';
+import type { AuthenticatedRequest } from '@/common/interfaces/authenticated-request.interface';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -50,23 +49,10 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private shouldSkipAudit(
-    context: ExecutionContext,
+    _context: ExecutionContext,
     request: AuthenticatedRequest,
   ): boolean {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (isPublic) {
-      return true;
-    }
-
-    if (!request.user) {
-      return true;
-    }
-
-    const url = request.url.toLowerCase();
+    const url = request.url?.toLowerCase() || '';
 
     if (url.includes('/audit-logs')) {
       return true;
@@ -147,7 +133,6 @@ export class AuditInterceptor implements NestInterceptor {
       const error = err as Error;
       this.logger.error('Failed to capture audit log', {
         error: error.message,
-        stack: error.stack,
         requestUrl: request.url,
       });
     }

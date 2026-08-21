@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 
-import { NotificationController } from './controllers/notification.controller';
+import { NotificationController } from '@/modules/notifications/notification.controller';
 
-import { NotificationService } from './services/notification.service';
-import { FirebaseService } from './services/firebase.service';
-import { DocumentReminderService } from './services/document-reminder.service';
+import { NotificationService } from '@/modules/notifications/notification.service';
+import { FirebaseService } from '@/common/firebase/firebase.service';
+import { DocumentReminderService } from '@/common/document-reminder/document-reminder.service';
 
-import { Notification } from './schemas/notification.schema';
-import { NotificationDevice } from './schemas/notification-device.schema';
+import { Notification } from '@/modules/notifications/notification.schema';
+import { NotificationDevice } from '@/modules/notifications/notification-device.schema';
 
-import { Document } from '../documents/models/document.model';
+import { Document } from '@/modules/documents/document.model';
 
 @Module({
   imports: [

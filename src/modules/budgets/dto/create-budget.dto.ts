@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
-import { BudgetPeriod } from '../enums/budget-period.enum';
+import { BudgetPeriod } from '@/modules/budgets/enums/budget-period.enum';
 
 export const createBudgetSchema = z
   .object({

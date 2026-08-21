@@ -1,16 +1,8 @@
 import { z } from 'zod';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { TransactionType } from '../enums/transaction-type.enum';
-import { PaymentMethod } from '../enums/payment-method.enum';
+import { TransactionType } from '@/modules/transactions/enums/transaction-type.enum';
+import { PaymentMethod } from '@/modules/transactions/enums/payment-method.enum';
 
-/**
- * @schema updateTransactionSchema
- *
- * @description
- * Zod schema for validating the incoming payload when updating a transaction.
- * Makes all fields optional. Strict cross-field business logic (e.g. type vs category)
- * will be evaluated in the Service layer after merging with the existing transaction.
- */
 export const updateTransactionSchema = z.object({
   wallet_id: z.string().uuid('Invalid wallet ID format.').optional(),
   category_id: z

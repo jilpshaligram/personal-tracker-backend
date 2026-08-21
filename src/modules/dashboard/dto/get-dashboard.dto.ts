@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { BudgetPeriod } from '../../budgets/enums/budget-period.enum';
+import { BudgetPeriod } from '@/modules/budgets/enums/budget-period.enum';
 
 /**
  * @schema getDashboardSchema

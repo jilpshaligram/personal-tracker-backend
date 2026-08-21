@@ -1,1 +1,1 @@
-export * from './budget-period.enum';
+export * from '@/modules/budgets/enums/budget-period.enum';

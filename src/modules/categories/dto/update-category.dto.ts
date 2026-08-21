@@ -1,14 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { createCategorySchema } from './create-category.dto';
-import { CategoryTransactionType } from '../enums/category-transaction-type.enum';
+import { createCategorySchema } from '@/modules/categories/dto/create-category.dto';
+import { CategoryTransactionType } from '@/modules/categories/enums/category-transaction-type.enum';
 
-/**
- * @schema updateCategorySchema
- *
- * @description
- * Zod schema for validating the incoming payload when updating an existing custom category.
- * It makes all fields from createCategorySchema optional.
- */
 export const updateCategorySchema = createCategorySchema
   .partial()
   .refine((data) => Object.keys(data).length > 0, {

@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { Otp } from './schemas/otp.schema';
-import { OtpController } from './controllers/otp.controller';
-import { OtpService } from './services/otp.service';
-import { OtpCleanupService } from './services/otp-cleanup.service';
-import { SecurityModule } from '../../infrastructure/security/security.module';
+import { Otp } from '@/modules/otp/otp.schema';
+import { OtpController } from '@/modules/otp/otp.controller';
+import { OtpService } from '@/modules/otp/otp.service';
+import { OtpCleanupService } from '@/modules/otp/otp-cleanup.service';
+import { SecurityService } from '@/infrastructure/security/security.service';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Otp]), SecurityModule],
+  imports: [SequelizeModule.forFeature([Otp])],
   controllers: [OtpController],
-  providers: [OtpService, OtpCleanupService],
+  providers: [OtpService, OtpCleanupService, SecurityService],
   exports: [OtpService, SequelizeModule],
 })
 export class OtpModule {}

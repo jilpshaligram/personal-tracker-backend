@@ -3,7 +3,7 @@ import { z } from 'zod';
 import {
   CreateDocumentCategoryDto,
   createDocumentCategorySchema,
-} from './create-document-category.dto';
+} from '@/modules/document-category/dto/create-document-category.dto';
 
 export const updateDocumentCategorySchema =
   createDocumentCategorySchema.partial();

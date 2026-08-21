@@ -1,60 +1,46 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import appConfig from './config/app.config';
-import authConfig from './config/auth.config';
-import cloudinaryConfig from './config/cloudinary.config';
-import configuration from './config/configuration';
-import databaseConfig from './config/database.config';
-import { validate } from './config/env.validation';
-import mailConfig from './config/mail.config';
-import swaggerConfig from './config/swagger.config';
-import throttlerConfig from './config/throttler.config';
-import { DatabaseModule } from './infrastructure/database/database.module';
-import { LoggerModule } from './infrastructure/logging/logger.module';
-import { SecurityModule } from './infrastructure/security/security.module';
-import { AuthGuard } from './common/guards/auth.guard';
-import { AuditInterceptor } from './common/interceptors/audit.interceptor';
-import { AuthModule } from './modules/auth';
-import { AuditLogsModule } from './modules/audit-logs';
-import { BillHistoryModule } from './modules/bill-history';
-import { BillsModule } from './modules/bills';
-import { BudgetsModule } from './modules/budgets';
-import { DashboardModule } from './modules/dashboard';
-import { DocumentCategoryModule } from './modules/document-category';
-import { DocumentModule } from './modules/documents';
-import { NotificationsModule } from './modules/notifications';
-import { OtpModule } from './modules/otp';
-import { SavingGoalsModule } from './modules/saving-goals';
-import { SavingTransactionsModule } from './modules/saving-transactions';
-import { TransactionModule } from './modules/transactions';
-import { UserSessionModule } from './modules/user-session';
-import { UsersModule } from './modules/users';
-import { CategoriesModule } from './modules/categories';
-import { WalletsModule } from './modules/wallets/wallets.module';
+import { AppController } from '@/app.controller';
+import { AppService } from '@/app.service';
+import configuration from '@/config/configuration';
+import { validate } from '@/config/env.validation';
+import { DatabaseModule } from '@/infrastructure/database/database.module';
+import { LoggerService } from '@/infrastructure/logging/logger.service';
+import { SecurityService } from '@/infrastructure/security/security.service';
+import { MailService } from '@/infrastructure/mail/mail.service';
+import { CloudinaryService } from '@/common/cloudinary/cloudinary.service';
+import { AuthGuard } from '@/common/guards/auth.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { AuditInterceptor } from '@/common/interceptors/audit.interceptor';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { AuditLogsModule } from '@/modules/audit-logs/audit-logs.module';
+import { BillHistoryModule } from '@/modules/bill-history/bill-history.module';
+import { BillsModule } from '@/modules/bills/bills.module';
+import { BudgetsModule } from '@/modules/budgets/budgets.module';
+import { DashboardModule } from '@/modules/dashboard/dashboard.module';
+import { DocumentCategoryModule } from '@/modules/document-category/document-category.module';
+import { DocumentModule } from '@/modules/documents/document.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
+import { OtpModule } from '@/modules/otp/otp.module';
+import { SavingGoalsModule } from '@/modules/saving-goals/saving-goals.module';
+import { SavingTransactionsModule } from '@/modules/saving-transactions/saving-transactions.module';
+import { TransactionModule } from '@/modules/transactions/transaction.module';
+import { UserSessionModule } from '@/modules/user-session/user-session.module';
+import { UsersModule } from '@/modules/users/users.module';
+import { CategoriesModule } from '@/modules/categories/categories.module';
+import { WalletsModule } from '@/modules/wallets/wallets.module';
 
+@Global()
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [
-        configuration,
-        databaseConfig,
-        appConfig,
-        authConfig,
-        swaggerConfig,
-        mailConfig,
-        cloudinaryConfig,
-        throttlerConfig,
-      ],
+      load: [configuration],
       validate,
     }),
     DatabaseModule,
-    LoggerModule,
-    SecurityModule,
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
@@ -77,14 +63,23 @@ import { WalletsModule } from './modules/wallets/wallets.module';
   controllers: [AppController],
   providers: [
     AppService,
+    LoggerService,
+    SecurityService,
+    MailService,
+    CloudinaryService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
     },
   ],
+  exports: [LoggerService, SecurityService, MailService, CloudinaryService],
 })
 export class AppModule {}

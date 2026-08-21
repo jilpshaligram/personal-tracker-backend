@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RecurringType } from '../enums/recurring-type.enum';
+import { RecurringType } from '@/modules/bills/enums/recurring-type.enum';
 
 export const createBillSchema = z
   .object({

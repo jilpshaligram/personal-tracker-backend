@@ -3,9 +3,9 @@ import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 
-import { Bill } from '../modules/bills/schemas/bill.schema';
-import { BillStatus } from '../modules/bills/enums/bill-status.enum';
-import { NotificationService } from '../modules/notifications/services/notification.service';
+import { Bill } from '@/modules/bills/bill.schema';
+import { BillStatus } from '@/modules/bills/enums/bill-status.enum';
+import { NotificationService } from '@/modules/notifications/notification.service';
 
 @Injectable()
 export class BillOverdueJob {
@@ -17,11 +17,6 @@ export class BillOverdueJob {
 
     private readonly notificationService: NotificationService,
   ) {}
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // CRON — every day at midnight IST
-  // Marks past-due PENDING bills as OVERDUE, then notifies users.
-  // ─────────────────────────────────────────────────────────────────────────────
 
   @Cron('0 9 * * *', { timeZone: 'Asia/Kolkata' })
   async execute(): Promise<void> {
@@ -43,7 +38,6 @@ export class BillOverdueJob {
 
       this.logger.log(`[BillOverdue] Today (IST): ${todayStr}`);
 
-      // Step 1: Find PENDING bills whose due date is before today
       const overdueBills = await this.billModel.findAll({
         where: {
           status: BillStatus.PENDING,
@@ -59,14 +53,12 @@ export class BillOverdueJob {
       let updated = 0;
 
       for (const bill of overdueBills) {
-        // Step 2: Mark as OVERDUE in DB
         await bill.update({ status: BillStatus.OVERDUE });
 
         this.logger.log(
           `[BillOverdue] 🔴 Marked OVERDUE: "${bill.title}" (id=${bill.id}) | userId=${bill.userId}`,
         );
 
-        // Step 3: Dedup — only send one OVERDUE notification per bill per day
         const since = new Date(todayStr + 'T00:00:00Z');
         const alreadySent =
           await this.notificationService.notificationExistsSince(
@@ -92,7 +84,6 @@ export class BillOverdueJob {
           timeZone: 'Asia/Kolkata',
         });
 
-        // Step 4: Create DB notification + Firebase push
         await this.notificationService.createAndPush({
           userId: bill.userId,
           type: 'BILL_OVERDUE',
@@ -115,7 +106,7 @@ export class BillOverdueJob {
     } catch (error) {
       this.logger.error(
         '[BillOverdue] ❌ Unhandled error.',
-        error instanceof Error ? error.stack : String(error),
+        error instanceof Error ? error.message : String(error),
       );
     }
 

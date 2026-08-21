@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { AuditLogController } from './controllers/audit-log.controller';
-import { AuditLogService } from './services/audit-log.service';
-import { AuditLog } from './schemas/audit-log.schema';
-import { SecurityModule } from '../../infrastructure/security/security.module';
-
+import { AuditLogController } from '@/modules/audit-logs/audit-log.controller';
+import { AuditLogService } from '@/modules/audit-logs/audit-log.service';
+import { AuditLog } from '@/modules/audit-logs/audit-log.schema';
 @Module({
-  imports: [SequelizeModule.forFeature([AuditLog]), SecurityModule],
+  imports: [SequelizeModule.forFeature([AuditLog])],
   controllers: [AuditLogController],
   providers: [AuditLogService],
   exports: [AuditLogService],

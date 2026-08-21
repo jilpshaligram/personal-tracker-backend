@@ -48,7 +48,6 @@ export class LoggerService {
           error: {
             name: error.name,
             message: error.message,
-            stack: error.stack,
           },
         },
         message,

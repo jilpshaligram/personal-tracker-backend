@@ -1,16 +1,8 @@
 import { z } from 'zod';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TransactionType } from '../enums/transaction-type.enum';
-import { PaymentMethod } from '../enums/payment-method.enum';
+import { TransactionType } from '@/modules/transactions/enums/transaction-type.enum';
+import { PaymentMethod } from '@/modules/transactions/enums/payment-method.enum';
 
-/**
- * @schema createTransactionSchema
- *
- * @description
- * Zod schema for validating the incoming payload when creating a transaction.
- * Validates the presence and format of required fields.
- * Does NOT perform cross-table business logic (e.g. checking if wallet belongs to user).
- */
 export const createTransactionSchema = z
   .object({
     wallet_id: z.string().uuid('Invalid wallet ID format.'),
@@ -51,7 +43,6 @@ export const createTransactionSchema = z
   })
   .refine(
     (data) => {
-      // INCOME / EXPENSE require a category
       if (
         (data.type === TransactionType.INCOME ||
           data.type === TransactionType.EXPENSE) &&
@@ -68,7 +59,6 @@ export const createTransactionSchema = z
   )
   .refine(
     (data) => {
-      // INCOME / EXPENSE should NOT have a saving_goal_id
       if (
         (data.type === TransactionType.INCOME ||
           data.type === TransactionType.EXPENSE) &&
@@ -86,7 +76,6 @@ export const createTransactionSchema = z
   )
   .refine(
     (data) => {
-      // TRANSFER transactions require a saving goal
       if (
         (data.type === TransactionType.TRANSFER_TO_SAVING ||
           data.type === TransactionType.TRANSFER_FROM_SAVING) &&
@@ -103,7 +92,6 @@ export const createTransactionSchema = z
   )
   .refine(
     (data) => {
-      // TRANSFER transactions should NOT have a category
       if (
         (data.type === TransactionType.TRANSFER_TO_SAVING ||
           data.type === TransactionType.TRANSFER_FROM_SAVING) &&
@@ -120,7 +108,6 @@ export const createTransactionSchema = z
   )
   .refine(
     (data) => {
-      // OPENING_BALANCE should have neither category nor saving goal
       if (
         data.type === TransactionType.OPENING_BALANCE &&
         (data.category_id || data.saving_goal_id)

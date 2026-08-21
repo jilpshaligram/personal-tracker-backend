@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { RecurringType } from '../enums/recurring-type.enum';
+import { RecurringType } from '@/modules/bills/enums/recurring-type.enum';
 
 export const updateBillSchema = z.object({
   categoryId: z.string().uuid('Invalid category ID').optional(),
