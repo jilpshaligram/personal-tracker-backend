@@ -19,6 +19,7 @@ import { SavingGoal } from '../../saving-goals/schemas/saving-goal.schema';
 import { QueryTransactionDto } from '../dto/query-transaction.dto';
 import { QueryHelper } from '../../../common/helpers/query.helper';
 import { TRANSACTION_QUERY_FIELDS } from '../constants/transaction-query-fields';
+import { NotificationService } from '../../notifications/services/notification.service';
 
 @Injectable()
 export class TransactionService {
@@ -29,6 +30,7 @@ export class TransactionService {
     private readonly walletRepository: WalletRepository,
     private readonly categoriesRepository: CategoriesRepository,
     private readonly savingGoalService: SavingGoalService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(userId: string, dto: CreateTransactionDto) {
@@ -160,7 +162,19 @@ export class TransactionService {
 
           if (isCompleted) {
             goalUpdateData.status = SavingGoalStatus.COMPLETED;
-            if (!goal.completedAt) goalUpdateData.completedAt = new Date();
+            if (!goal.completedAt) {
+              goalUpdateData.completedAt = new Date();
+
+              // Trigger instant notification
+              await this.notificationService.createAndPush({
+                userId: goal.userId,
+                type: 'SAVING_GOAL_COMPLETED',
+                title: 'Saving Goal Completed! 🎉',
+                message: `Congratulations! You have successfully reached your saving goal "${goal.title}" (₹${targetAmount}).`,
+                referenceId: goal.id,
+                referenceType: 'SAVING_GOAL',
+              });
+            }
           }
 
           await goal.update(goalUpdateData, { transaction: t });

@@ -9,6 +9,8 @@ import { CategoriesModule } from '../categories/categories.module';
 import { SavingGoalsModule } from '../saving-goals/saving-goals.module';
 import { SecurityModule } from '../../infrastructure/security/security.module';
 
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
   imports: [
     SequelizeModule.forFeature([Transaction]),
@@ -16,6 +18,7 @@ import { SecurityModule } from '../../infrastructure/security/security.module';
     CategoriesModule,
     forwardRef(() => SavingGoalsModule),
     SecurityModule,
+    NotificationsModule,
   ],
   controllers: [TransactionController],
   providers: [TransactionService, TransactionRepository],

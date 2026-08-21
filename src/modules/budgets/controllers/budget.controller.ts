@@ -26,13 +26,22 @@ import { createBudgetSchema, CreateBudgetDto } from '../dto/create-budget.dto';
 import { updateBudgetSchema, UpdateBudgetDto } from '../dto/update-budget.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
+import { BudgetAlertJob } from '../../../jobs/budget-alert.job';
+import { Public } from '../../../common/decorators/public.decorator';
+
+// interface AuthenticatedRequest extends Request {
+//   user: IJwtPayload;
+// }
 
 @ApiTags('Budgets')
 @ApiBearerAuth('access-token')
 @Controller('budgets')
 @UseGuards(AuthGuard)
 export class BudgetController {
-  constructor(private readonly budgetService: BudgetService) {}
+  constructor(
+    private readonly budgetService: BudgetService,
+    private readonly budgetAlertJob: BudgetAlertJob,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -144,5 +153,22 @@ export class BudgetController {
     const userId = req.user.sub;
     await this.budgetService.remove(id, userId);
     return successResponse('Budget deleted successfully.');
+  }
+
+  // ── TEST ENDPOINTS (development only) ────────────────────────────────────────
+
+  @Post('test-alerts')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '[DEV] Manually trigger the budget alert scheduler',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduler triggered successfully.',
+  })
+  async testAlerts() {
+    await this.budgetAlertJob.triggerNow();
+    return successResponse('Budget alert check triggered. Check server logs.');
   }
 }

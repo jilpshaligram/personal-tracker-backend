@@ -42,6 +42,12 @@ import { z } from 'zod';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 
 import type { AuthenticatedRequest } from '../../../common/interfaces/authenticated-request.interface';
+import { SavingGoalJob } from '../../../jobs/saving-goal.job';
+import { Public } from '../../../common/decorators/public.decorator';
+
+// interface AuthenticatedRequest extends Request {
+//   user: IJwtPayload;
+// }
 
 const transactionSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
@@ -97,6 +103,7 @@ export class SavingGoalController {
     private readonly savingGoalService: SavingGoalService,
     @Inject(forwardRef(() => TransactionService))
     private readonly transactionService: TransactionService,
+    private readonly savingGoalJob: SavingGoalJob,
   ) {}
 
   @Post()
@@ -241,5 +248,24 @@ export class SavingGoalController {
       category_id: null,
     });
     return successResponse('Withdrawal successful.', { transaction });
+  }
+
+  // ── TEST ENDPOINTS (development only) ────────────────────────────────────────
+
+  @Post('test-reminders')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '[DEV] Manually trigger the saving goal reminder scheduler',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduler triggered successfully.',
+  })
+  async testReminders() {
+    await this.savingGoalJob.triggerNow();
+    return successResponse(
+      'Saving goal reminder check triggered. Check server logs.',
+    );
   }
 }

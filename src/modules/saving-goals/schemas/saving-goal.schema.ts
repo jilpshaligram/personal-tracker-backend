@@ -85,7 +85,7 @@ export class SavingGoal extends Model {
   // ─── Reminders ────────────────────────────────────────────────────────────
 
   /** Whether the user wants automated reminders for this goal */
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, allowNull: false })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true, allowNull: false })
   declare autoReminder: boolean;
 
   /**

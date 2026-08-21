@@ -11,12 +11,14 @@ import { ISavingGoal } from '../interfaces/saving-goal.interface';
 import { CreateSavingGoalDto } from '../dto/create-saving-goal.dto';
 import { UpdateSavingGoalDto } from '../dto/update-saving-goal.dto';
 import { Transaction, FindOptions } from 'sequelize';
+import { NotificationService } from '../../notifications/services/notification.service';
 
 @Injectable()
 export class SavingGoalService {
   constructor(
     @InjectModel(SavingGoal)
     private readonly savingGoalModel: typeof SavingGoal,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -202,6 +204,18 @@ export class SavingGoalService {
       updateData.status = SavingGoalStatus.COMPLETED;
       if (!goal.completedAt) {
         updateData.completedAt = new Date();
+
+        // Trigger instant notification
+        // Await the push so it saves to the DB before the transaction commits/ends.
+        // Firebase errors are handled internally by createAndPush.
+        await this.notificationService.createAndPush({
+          userId: goal.userId,
+          type: 'SAVING_GOAL_COMPLETED',
+          title: 'Saving Goal Completed! 🎉',
+          message: `Congratulations! You have successfully reached your saving goal "${goal.title}" (₹${targetAmount}).`,
+          referenceId: goal.id,
+          referenceType: 'SAVING_GOAL',
+        });
       }
     } else {
       // Revert to ACTIVE if a withdrawal brought it below the target
